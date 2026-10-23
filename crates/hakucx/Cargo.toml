@@ -1,0 +1,34 @@
+[package]
+name = "hakucx"
+description = "HakuCX: an independent, customizable GX-style browser built on Rust and Servo"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+authors.workspace = true
+build = "build.rs"
+
+[[bin]]
+name = "hakucx"
+path = "src/main.rs"
+
+[dependencies]
+servo = { workspace = true }
+winit = { workspace = true }
+euclid = { workspace = true }
+url = { workspace = true }
+glow = { workspace = true }
+gleam = { workspace = true }
+surfman = { workspace = true }
+rustls = { workspace = true }
+headers = { workspace = true }
+http = { workspace = true }
+mime_guess = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+log = { workspace = true }
+
+[target.'cfg(windows)'.dependencies]
+# Servo's own shell uses ANGLE (EGL over D3D) on Windows instead of WGL.
+servo = { workspace = true, features = ["no-wgl"] }

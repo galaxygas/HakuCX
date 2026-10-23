@@ -1,0 +1,49 @@
+﻿[workspace]
+resolver = "3"
+members = ["crates/hakucx", "crates/haku-core"]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2024"
+license = "MPL-2.0"
+repository = "https://github.com/galaxygas/HakuCX"
+rust-version = "1.97"
+authors = ["HakuCX contributors"]
+
+[workspace.dependencies]
+# Servo publishes monthly releases with breaking API changes: pin exactly and upgrade deliberately.
+servo = { version = "=0.7.0" }
+winit = "0.30.13"
+euclid = "0.22"
+url = "2.5"
+glow = "0.17"
+gleam = "0.15"
+surfman = "0.14"
+rustls = { version = "0.23", default-features = false, features = ["aws-lc-rs", "std", "tls12", "logging"] }
+headers = "0.4"
+http = "1.4"
+mime_guess = "2"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+log = "0.4"
+env_logger = "0.11"
+rusqlite = { version = "0.38", features = ["bundled"] }
+thiserror = "2"
+uuid = { version = "1", features = ["v4", "serde"] }
+time = { version = "0.3", features = ["formatting", "parsing", "macros"] }
+html-escape = "0.3"
+tempfile = "3"
+haku-core = { path = "crates/haku-core" }
+
+# Servo is enormous; keep dev builds usable and the target dir small.
+[profile.dev]
+debug = "line-tables-only"
+
+[profile.dev.package."*"]
+opt-level = 2
+debug = false
+
+[profile.release]
+lto = "thin"
+codegen-units = 16
+debug = false
