@@ -28,6 +28,7 @@ mime_guess = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
 log = { workspace = true }
+include_dir = { workspace = true }
 
 [target.'cfg(windows)'.dependencies]
 # Servo's own shell uses ANGLE (EGL over D3D) on Windows instead of WGL.

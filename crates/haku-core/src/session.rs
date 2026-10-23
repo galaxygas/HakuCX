@@ -11,6 +11,7 @@
 use std::collections::{BTreeMap, VecDeque};
 
 use serde::{Deserialize, Serialize};
+use ts_rs::TS;
 
 pub const START_URL: &str = "haku://start/";
 const MAX_CLOSED: usize = 25;
@@ -23,12 +24,11 @@ fn new_id() -> String {
     uuid::Uuid::new_v4().simple().to_string()
 }
 
-fn now_ms() -> i64 {
-    (time::OffsetDateTime::now_utc().unix_timestamp_nanos() / 1_000_000) as i64
-}
+use crate::now_ms;
 
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, TS)]
 #[serde(default, rename_all = "camelCase")]
+#[ts(export)]
 pub struct Tab {
     pub id: TabId,
     pub workspace_id: WorkspaceId,
@@ -72,8 +72,9 @@ impl Default for Tab {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, TS)]
 #[serde(default, rename_all = "camelCase")]
+#[ts(export)]
 pub struct Island {
     pub id: IslandId,
     pub workspace_id: WorkspaceId,
@@ -100,8 +101,9 @@ impl Default for Island {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, TS)]
 #[serde(default, rename_all = "camelCase")]
+#[ts(export)]
 pub struct Workspace {
     pub id: WorkspaceId,
     pub name: String,
@@ -119,8 +121,9 @@ impl Default for Workspace {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, TS)]
 #[serde(rename_all = "camelCase")]
+#[ts(export)]
 pub struct ClosedTab {
     pub tab: Tab,
     /// Index within its workspace at the time it was closed.
@@ -162,8 +165,9 @@ impl NewTab {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, TS)]
 #[serde(default, rename_all = "camelCase")]
+#[ts(export)]
 pub struct Session {
     pub workspaces: Vec<Workspace>,
     pub active_workspace: WorkspaceId,
@@ -172,10 +176,12 @@ pub struct Session {
     /// Active tab per workspace.
     pub active_tabs: BTreeMap<WorkspaceId, TabId>,
     pub islands: Vec<Island>,
+    #[ts(as = "Vec<ClosedTab>")]
     pub closed: VecDeque<ClosedTab>,
     /// Two tabs shown side by side (left, right).
     pub split: Option<(TabId, TabId)>,
     /// Most-recently-used order of tab ids (front = most recent).
+    #[ts(as = "Vec<TabId>")]
     pub mru: VecDeque<TabId>,
 }
 

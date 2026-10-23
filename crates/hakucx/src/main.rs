@@ -39,7 +39,13 @@ const IPC_PREFIX: &str = "\u{1}haku-ipc:";
 /// Hosts blocked by the spike's interception test.
 const SPIKE_BLOCKED_HOSTS: &[&str] = &["doubleclick.net", "googlesyndication.com"];
 
+/// The production UI, built by `crates/hakucx/build.rs` from `ui/`.
+static UI_DIST: include_dir::Dir<'static> = include_dir::include_dir!("$CARGO_MANIFEST_DIR/../../ui/dist");
+
 fn spike_asset(host: &str, path: &str) -> Option<&'static [u8]> {
+    if host == "app" {
+        return UI_DIST.get_file(path).map(|f| f.contents());
+    }
     match (host, path) {
         ("ui", "index.html") => Some(include_bytes!("../spike/index.html")),
         ("ui", "shell.css") => Some(include_bytes!("../spike/shell.css")),

@@ -1,7 +1,7 @@
 :root { --accent: #7d46f2; --dim: #4b2a91; --chrome: #121217; --elev: #1a1a23; --text: #fff; --muted: #9b9ba8; }
 * { box-sizing: border-box; }
 html, body { margin: 0; height: 100%; background: transparent; color: var(--text); font: 13px system-ui, sans-serif; overflow: hidden; }
-#frame { display: grid; grid-template-rows: 36px 40px 1fr 20px; height: 100%; border-top: 2px solid var(--accent); }
+#frame { display: grid; grid-template-columns: minmax(0, 1fr); grid-template-rows: 36px 40px 1fr 20px; height: 100%; border-top: 2px solid var(--accent); }
 #tabstrip { display: flex; align-items: center; gap: 6px; padding: 0 8px; background: #000002; }
 .logo { width: 22px; height: 22px; border-radius: 6px; background: var(--accent); display: grid; place-items: center; font-weight: 800; }
 #tabs { display: flex; gap: 4px; flex: 1; overflow: hidden; }
@@ -14,7 +14,7 @@ html, body { margin: 0; height: 100%; background: transparent; color: var(--text
 button { background: transparent; color: var(--accent); border: 0; font-size: 15px; cursor: pointer; padding: 4px 8px; border-radius: 6px; }
 button:hover { background: var(--elev); }
 #toolbar { display: flex; align-items: center; gap: 4px; padding: 0 8px; background: var(--chrome); }
-#address { flex: 1; height: 28px; border-radius: 8px; border: 1px solid transparent; background: #09090c; color: var(--text); padding: 0 12px; outline: none; }
+#address { flex: 1; min-width: 0; width: 0; height: 28px; border-radius: 8px; border: 1px solid transparent; background: #09090c; color: var(--text); padding: 0 12px; outline: none; }
 #address:focus { border-color: var(--accent); }
 .chip { color: var(--muted); padding: 2px 8px; border: 1px solid #2a2a35; border-radius: 10px; }
 #body { display: grid; grid-template-columns: 44px 1fr; min-height: 0; }

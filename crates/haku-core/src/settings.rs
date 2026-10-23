@@ -14,12 +14,14 @@
 use std::collections::BTreeMap;
 
 use serde::{Deserialize, Serialize};
+use ts_rs::TS;
 
 /// Bump when a migration in [`Settings::migrate`] is added.
 pub const SETTINGS_VERSION: u32 = 1;
 
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, TS)]
 #[serde(default, rename_all = "camelCase")]
+#[ts(export)]
 pub struct Settings {
     pub version: u32,
     pub appearance: Appearance,
@@ -50,6 +52,7 @@ pub struct Settings {
     pub early_bird: EarlyBird,
     /// Keys this build does not know about, kept verbatim.
     #[serde(flatten)]
+    #[ts(skip)]
     pub extra: BTreeMap<String, serde_json::Value>,
 }
 
@@ -166,40 +169,45 @@ pub fn merge_patch(target: &mut serde_json::Value, patch: &serde_json::Value) {
 // Appearance
 // ---------------------------------------------------------------------------------------------
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize, TS)]
 #[serde(rename_all = "kebab-case")]
+#[ts(export)]
 pub enum ColorMode {
     Light,
     Auto,
     Dark,
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize, TS)]
 #[serde(rename_all = "kebab-case")]
+#[ts(export)]
 pub enum InterfaceMode {
     Auto,
     Custom,
 }
 
 /// Opera GX "Show window decoration": Outside / Outside except maximized / Inside.
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize, TS)]
 #[serde(rename_all = "kebab-case")]
+#[ts(export)]
 pub enum WindowDecoration {
     Outside,
     OutsideExceptMaximized,
     Inside,
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize, TS)]
 #[serde(rename_all = "kebab-case")]
+#[ts(export)]
 pub enum CornerStyle {
     Sharp,
     Cut,
     Round,
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize, TS)]
 #[serde(rename_all = "kebab-case")]
+#[ts(export)]
 pub enum FontSize {
     VerySmall,
     Small,
@@ -208,8 +216,9 @@ pub enum FontSize {
     VeryLarge,
 }
 
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, TS)]
 #[serde(default, rename_all = "camelCase")]
+#[ts(export)]
 pub struct Appearance {
     /// Theme id from [`crate::themes`] or a user theme id (`user:<uuid>`).
     pub theme: String,
@@ -302,8 +311,9 @@ impl Default for Appearance {
 // Tabs / user interface
 // ---------------------------------------------------------------------------------------------
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize, TS)]
 #[serde(rename_all = "kebab-case")]
+#[ts(export)]
 pub enum TraceThreshold {
     Off,
     MoreThan10,
@@ -311,8 +321,9 @@ pub enum TraceThreshold {
     MoreThan30,
 }
 
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, TS)]
 #[serde(default, rename_all = "camelCase")]
+#[ts(export)]
 pub struct TabSettings {
     pub auto_islands: bool,
     pub traces: TraceThreshold,
@@ -372,8 +383,9 @@ impl Default for TabSettings {
 // Sidebar
 // ---------------------------------------------------------------------------------------------
 
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, TS)]
 #[serde(default, rename_all = "camelCase")]
+#[ts(export)]
 pub struct SidebarSettings {
     pub show: bool,
     pub messenger_notifications: bool,
@@ -428,8 +440,9 @@ impl Default for SidebarSettings {
 // Start page
 // ---------------------------------------------------------------------------------------------
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize, TS)]
 #[serde(rename_all = "kebab-case")]
+#[ts(export)]
 pub enum DialPosition {
     Auto,
     Top,
@@ -438,8 +451,9 @@ pub enum DialPosition {
     Left,
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize, TS)]
 #[serde(rename_all = "kebab-case")]
+#[ts(export)]
 pub enum DialEffect {
     None,
     Skew,
@@ -447,8 +461,9 @@ pub enum DialEffect {
     Tilt,
 }
 
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, TS)]
 #[serde(default, rename_all = "camelCase")]
+#[ts(export)]
 pub struct StartPage {
     pub hide_search: bool,
     pub hide_speed_dial: bool,
@@ -466,8 +481,9 @@ pub struct StartPage {
     pub widgets: StartWidgets,
 }
 
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, TS)]
 #[serde(default, rename_all = "camelCase")]
+#[ts(export)]
 pub struct StartWidgets {
     pub weather: bool,
     /// Free-text city resolved through Open-Meteo geocoding.
@@ -518,8 +534,9 @@ impl Default for StartPage {
 // Features (GX basics, profiles, pinboards, easy files)
 // ---------------------------------------------------------------------------------------------
 
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, TS)]
 #[serde(default, rename_all = "camelCase")]
+#[ts(export)]
 pub struct Features {
     pub force_dark_pages: bool,
     /// Sites excluded from force dark.
@@ -569,8 +586,9 @@ pub const BROWSER_SOUNDS: &[&str] = &[
     "switch",
 ];
 
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, TS)]
 #[serde(default, rename_all = "camelCase")]
+#[ts(export)]
 pub struct Sounds {
     pub browser_sounds: bool,
     pub browser_pack: String,
@@ -609,8 +627,9 @@ impl Default for Sounds {
 // GX Lights (RGB peripherals)
 // ---------------------------------------------------------------------------------------------
 
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, TS)]
 #[serde(default, rename_all = "camelCase")]
+#[ts(export)]
 pub struct Lights {
     pub enabled: bool,
     pub razer_chroma: bool,
@@ -645,8 +664,9 @@ impl Default for Lights {
 // Battery saver
 // ---------------------------------------------------------------------------------------------
 
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, TS)]
 #[serde(default, rename_all = "camelCase")]
+#[ts(export)]
 pub struct Battery {
     pub saver: bool,
     pub auto_when_unplugged: bool,
@@ -670,16 +690,18 @@ impl Default for Battery {
 // Player
 // ---------------------------------------------------------------------------------------------
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize, TS)]
 #[serde(rename_all = "kebab-case")]
+#[ts(export)]
 pub enum MiniplayerMode {
     Off,
     InToolbar,
     InSidebar,
 }
 
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, TS)]
 #[serde(default, rename_all = "camelCase")]
+#[ts(export)]
 pub struct Player {
     pub enabled: bool,
     pub miniplayer: MiniplayerMode,
@@ -707,8 +729,9 @@ impl Default for Player {
 // Video
 // ---------------------------------------------------------------------------------------------
 
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, TS)]
 #[serde(default, rename_all = "camelCase")]
+#[ts(export)]
 pub struct Video {
     pub rgx_enhance_videos: bool,
     pub rgx_button: bool,
@@ -745,15 +768,17 @@ impl Default for Video {
 // GX Control
 // ---------------------------------------------------------------------------------------------
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize, TS)]
 #[serde(rename_all = "kebab-case")]
+#[ts(export)]
 pub enum HotTabsSort {
     Cpu,
     Ram,
 }
 
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, TS)]
 #[serde(default, rename_all = "camelCase")]
+#[ts(export)]
 pub struct GxControl {
     pub ram_limiter: bool,
     /// Memory limit for all browser processes together, MiB.
@@ -791,8 +816,9 @@ impl Default for GxControl {
 // GX Cleaner
 // ---------------------------------------------------------------------------------------------
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize, TS)]
 #[serde(rename_all = "kebab-case")]
+#[ts(export)]
 pub enum CleanerPreset {
     Min,
     Med,
@@ -800,8 +826,9 @@ pub enum CleanerPreset {
 }
 
 /// "Older than ..." thresholds offered by the cleaner, in seconds; 0 means everything.
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize, TS)]
 #[serde(rename_all = "kebab-case")]
+#[ts(export)]
 pub enum CleanerAge {
     All,
     OlderThanHour,
@@ -822,15 +849,17 @@ impl CleanerAge {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, TS)]
 #[serde(default, rename_all = "camelCase")]
+#[ts(export)]
 pub struct CleanerItem {
     pub enabled: bool,
     pub age: CleanerAge,
 }
 
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, TS)]
 #[serde(default, rename_all = "camelCase")]
+#[ts(export)]
 pub struct Cleaner {
     pub preset: CleanerPreset,
     pub cache: CleanerItem,
@@ -905,8 +934,9 @@ impl Cleaner {
 // Panic button
 // ---------------------------------------------------------------------------------------------
 
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, TS)]
 #[serde(default, rename_all = "camelCase")]
+#[ts(export)]
 pub struct Panic {
     pub enabled: bool,
     /// Key in `keyboard_types::Code` notation, e.g. `F12`.
@@ -945,16 +975,18 @@ impl Default for Panic {
 // Privacy & security
 // ---------------------------------------------------------------------------------------------
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize, TS)]
 #[serde(rename_all = "kebab-case")]
+#[ts(export)]
 pub enum ThirdPartyCookies {
     Allow,
     BlockInPrivate,
     Block,
 }
 
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, TS)]
 #[serde(default, rename_all = "camelCase")]
+#[ts(export)]
 pub struct FilterList {
     pub id: String,
     pub name: String,
@@ -1028,8 +1060,9 @@ pub fn default_filter_lists() -> Vec<FilterList> {
     ]
 }
 
-#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize, TS)]
 #[serde(default, rename_all = "camelCase")]
+#[ts(export)]
 pub struct ClearOnExit {
     pub history: bool,
     pub cookies: bool,
@@ -1039,8 +1072,9 @@ pub struct ClearOnExit {
     pub site_settings: bool,
 }
 
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, TS)]
 #[serde(default, rename_all = "camelCase")]
+#[ts(export)]
 pub struct Privacy {
     pub block_ads: bool,
     pub block_trackers: bool,
@@ -1102,8 +1136,9 @@ impl Default for Privacy {
 // Site permissions
 // ---------------------------------------------------------------------------------------------
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize, TS)]
 #[serde(rename_all = "kebab-case")]
+#[ts(export)]
 pub enum PermissionSetting {
     Ask,
     Allow,
@@ -1111,8 +1146,9 @@ pub enum PermissionSetting {
 }
 
 /// Default behaviour per permission kind, plus per-origin overrides.
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, TS)]
 #[serde(default, rename_all = "camelCase")]
+#[ts(export)]
 pub struct Permissions {
     /// Permission kind (e.g. `camera`, `geolocation`) -> default setting.
     pub defaults: BTreeMap<String, PermissionSetting>,
@@ -1199,8 +1235,9 @@ impl Permissions {
 // Search
 // ---------------------------------------------------------------------------------------------
 
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, TS)]
 #[serde(default, rename_all = "camelCase")]
+#[ts(export)]
 pub struct SearchEngine {
     pub id: String,
     pub name: String,
@@ -1324,8 +1361,9 @@ pub fn default_search_engines() -> Vec<SearchEngine> {
     ]
 }
 
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, TS)]
 #[serde(default, rename_all = "camelCase")]
+#[ts(export)]
 pub struct Search {
     pub default_engine: String,
     pub private_engine: Option<String>,
@@ -1358,16 +1396,18 @@ impl Default for Search {
 // On startup
 // ---------------------------------------------------------------------------------------------
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize, TS)]
 #[serde(rename_all = "kebab-case")]
+#[ts(export)]
 pub enum StartupMode {
     StartPage,
     RestoreSession,
     SpecificPages,
 }
 
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, TS)]
 #[serde(default, rename_all = "camelCase")]
+#[ts(export)]
 pub struct Startup {
     pub mode: StartupMode,
     pub show_start_page_first: bool,
@@ -1392,8 +1432,9 @@ impl Default for Startup {
 // Languages, downloads, accessibility, system
 // ---------------------------------------------------------------------------------------------
 
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, TS)]
 #[serde(default, rename_all = "camelCase")]
+#[ts(export)]
 pub struct Languages {
     /// UI language (BCP 47). Only locales shipped in `ui/locales` are selectable.
     pub ui_language: String,
@@ -1420,8 +1461,9 @@ impl Default for Languages {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, TS)]
 #[serde(default, rename_all = "camelCase")]
+#[ts(export)]
 pub struct Downloads {
     /// Absolute path; empty means the user's Downloads folder.
     pub directory: String,
@@ -1441,8 +1483,9 @@ impl Default for Downloads {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, TS)]
 #[serde(default, rename_all = "camelCase")]
+#[ts(export)]
 pub struct Accessibility {
     pub focus_highlight: bool,
     pub swipe_navigation: bool,
@@ -1461,8 +1504,9 @@ impl Default for Accessibility {
     }
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize, TS)]
 #[serde(rename_all = "kebab-case")]
+#[ts(export)]
 pub enum ProxyMode {
     /// Use `HTTP(S)_PROXY` from the environment, like Servo does by default.
     System,
@@ -1470,8 +1514,9 @@ pub enum ProxyMode {
     Manual,
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize, TS)]
 #[serde(rename_all = "kebab-case")]
+#[ts(export)]
 pub enum WebRtcPolicy {
     Default,
     DefaultPublicAndPrivate,
@@ -1479,8 +1524,9 @@ pub enum WebRtcPolicy {
     DisableNonProxiedUdp,
 }
 
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, TS)]
 #[serde(default, rename_all = "camelCase")]
+#[ts(export)]
 pub struct System {
     pub hardware_acceleration: bool,
     pub proxy_mode: ProxyMode,
@@ -1514,8 +1560,9 @@ impl Default for System {
 // Sync, smart home, AI
 // ---------------------------------------------------------------------------------------------
 
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, TS)]
 #[serde(default, rename_all = "camelCase")]
+#[ts(export)]
 pub struct Sync {
     /// Folder-based sync: HakuCX writes an encrypted bundle to this folder (e.g. a OneDrive or
     /// Syncthing folder) and merges bundles written by other devices.
@@ -1544,8 +1591,9 @@ impl Default for Sync {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, TS)]
 #[serde(default, rename_all = "camelCase")]
+#[ts(export)]
 pub struct SmartHome {
     pub mqtt: bool,
     pub broker_url: String,
@@ -1562,8 +1610,9 @@ impl Default for SmartHome {
     }
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize, TS)]
 #[serde(rename_all = "kebab-case")]
+#[ts(export)]
 pub enum AiProvider {
     None,
     Anthropic,
@@ -1571,8 +1620,9 @@ pub enum AiProvider {
     Ollama,
 }
 
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, TS)]
 #[serde(default, rename_all = "camelCase")]
+#[ts(export)]
 pub struct Ai {
     pub enabled: bool,
     pub toolbar_button: bool,
@@ -1603,8 +1653,9 @@ impl Default for Ai {
 // Shortcuts & gestures
 // ---------------------------------------------------------------------------------------------
 
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, TS)]
 #[serde(default, rename_all = "camelCase")]
+#[ts(export)]
 pub struct Shortcuts {
     pub mouse_gestures: bool,
     pub rocker_gestures: bool,
@@ -1642,8 +1693,9 @@ pub const EARLY_BIRD_FEATURES: &[(&str, &str)] = &[
     ("panic-grass", "Touch grass after panic"),
 ];
 
-#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize, TS)]
 #[serde(default, rename_all = "camelCase")]
+#[ts(export)]
 pub struct EarlyBird {
     pub enabled: bool,
     pub features: BTreeMap<String, bool>,

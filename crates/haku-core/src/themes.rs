@@ -13,6 +13,7 @@ use std::collections::BTreeMap;
 use std::fmt;
 
 use serde::{Deserialize, Serialize};
+use ts_rs::TS;
 
 use crate::settings::ColorMode;
 
@@ -311,8 +312,9 @@ pub fn default_theme() -> &'static Theme {
 }
 
 /// A user-made theme stored in the profile (`themes.json`).
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, TS)]
 #[serde(rename_all = "camelCase")]
+#[ts(export)]
 pub struct UserTheme {
     pub id: String,
     pub name: String,
@@ -324,18 +326,110 @@ pub struct UserTheme {
 }
 
 /// Fully resolved palette handed to the UI as CSS custom properties.
-#[derive(Clone, Debug, PartialEq, Serialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, TS)]
+#[ts(export)]
 pub struct Palette {
     pub dark: bool,
-    pub vars: BTreeMap<&'static str, String>,
+    pub vars: BTreeMap<String, String>,
+}
+
+/// A theme as the UI sees it (colors as `#rrggbb`).
+#[derive(Clone, Debug, PartialEq, Serialize, TS)]
+#[serde(rename_all = "camelCase")]
+#[ts(export)]
+pub struct ThemeInfo {
+    pub id: String,
+    pub name: String,
+    pub family: String,
+    pub dark_accent: String,
+    pub dark_background: String,
+    pub light_accent: String,
+    pub light_background: String,
+    pub wallpaper: String,
+    pub user: bool,
+}
+
+impl ThemeInfo {
+    pub fn from_builtin(t: &Theme) -> Self {
+        Self {
+            id: t.id.into(),
+            name: t.name.into(),
+            family: match t.family {
+                ThemeFamily::Gx => "gx".into(),
+                ThemeFamily::Haku => "haku".into(),
+            },
+            dark_accent: t.dark.accent.to_string(),
+            dark_background: t.dark.background.to_string(),
+            light_accent: t.light.accent.to_string(),
+            light_background: t.light.background.to_string(),
+            wallpaper: t.wallpaper.into(),
+            user: false,
+        }
+    }
+
+    pub fn from_user(t: &UserTheme) -> Self {
+        Self {
+            id: t.id.clone(),
+            name: t.name.clone(),
+            family: "user".into(),
+            dark_accent: t.dark_primary.clone(),
+            dark_background: t.dark_secondary.clone(),
+            light_accent: t.light_primary.clone(),
+            light_background: t.light_secondary.clone(),
+            wallpaper: t.wallpaper.clone(),
+            user: true,
+        }
+    }
+}
+
+/// Built-in themes followed by the user's own.
+pub fn all_themes(user: &[UserTheme]) -> Vec<ThemeInfo> {
+    THEMES
+        .iter()
+        .map(ThemeInfo::from_builtin)
+        .chain(user.iter().map(ThemeInfo::from_user))
+        .collect()
+}
+
+/// Resolve the palette for whatever theme id the settings name (built-in or user theme).
+pub fn palette_for_settings(
+    appearance: &crate::settings::Appearance,
+    user: &[UserTheme],
+    system_dark: bool,
+) -> Palette {
+    if let Some(u) = user.iter().find(|u| u.id == appearance.theme) {
+        let dark = match appearance.color_mode {
+            ColorMode::Dark => true,
+            ColorMode::Light => false,
+            ColorMode::Auto => system_dark,
+        };
+        let (primary, secondary) =
+            if dark { (&u.dark_primary, &u.dark_secondary) } else { (&u.light_primary, &u.light_secondary) };
+        let base = default_theme();
+        return palette_for(
+            base,
+            appearance.color_mode,
+            system_dark,
+            appearance.primary_color.as_deref().or(Some(primary)),
+            appearance.secondary_color.as_deref().or(Some(secondary)),
+        );
+    }
+    let theme = theme(&appearance.theme).unwrap_or_else(default_theme);
+    palette_for(
+        theme,
+        appearance.color_mode,
+        system_dark,
+        appearance.primary_color.as_deref(),
+        appearance.secondary_color.as_deref(),
+    )
 }
 
 /// Build the palette from an accent and a background. `secondary` (if any) tints the
 /// background the way Opera GX's "Secondary Color" does.
 pub fn derive_palette(accent: Rgb, accent_dim: Rgb, background: Rgb, dark: bool) -> Palette {
     let mut vars = BTreeMap::new();
-    let mut put = |k: &'static str, v: String| {
-        vars.insert(k, v);
+    let mut put = |k: &str, v: String| {
+        vars.insert(k.to_owned(), v);
     };
     let (text, ink) = if dark {
         (WHITE, BLACK)

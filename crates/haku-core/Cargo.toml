@@ -18,6 +18,8 @@ thiserror = { workspace = true }
 uuid = { workspace = true }
 time = { workspace = true }
 html-escape = { workspace = true }
+ts-rs = { workspace = true }
+dirs = { workspace = true }
 
 [dev-dependencies]
 tempfile = { workspace = true }

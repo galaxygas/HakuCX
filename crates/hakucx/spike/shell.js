@@ -80,6 +80,10 @@
   $("menubtn").addEventListener("click", () => setMenu($("menu").hidden));
   $("closemenu").addEventListener("click", () => setMenu(false));
 
+  setInterval(() => {
+    const tb = $("toolbar").getBoundingClientRect();
+    $("status").textContent = "inner " + innerWidth + "x" + innerHeight + " toolbar " + Math.round(tb.width) + " dpr " + devicePixelRatio;
+  }, 500);
   reportRect();
   send({ type: "ready" });
 })();
