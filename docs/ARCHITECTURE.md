@@ -49,6 +49,10 @@ Servo has no WebExtensions support, so HakuCX implements the runtime (details an
 - Content scripts are one user script per extension in every page's `UserContentManager`; they run in the page's world.
 - declarativeNetRequest and blocking `webRequest` run in `load_web_resource`. A blocked decision holds the request (and, because Servo's interceptor is serialized, every other request) for at most 400 ms.
 
+## Passwords and sync
+
+The vault and sync formats are engine-independent (`haku-core`); the browser supplies the Windows pieces (DPAPI, Windows Hello in `os_secrets.rs`). A page script reports submitted logins and focused fields over the page channel; the core decides from the tab's real address what to offer, and the UI draws the prompt and suggestions over the page. See [PASSWORDS-AND-SYNC.md](PASSWORDS-AND-SYNC.md).
+
 ## UI state
 
 The UI keeps a mirror of the core's state in a Zustand store (`ui/src/state/store.ts`), updated only by events from Rust. Selectors must return stable values: a selector that returns a fresh `[]` or object on every call makes React re-render forever (use the shared `NONE` constant).

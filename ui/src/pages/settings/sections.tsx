@@ -10,6 +10,7 @@ import { patch } from "../../lib/util";
 import { ThemeCarousel } from "../../overlays/EasySetup";
 import { useStore } from "../../state/store";
 import { go } from "../InternalPage";
+import { SyncPanel } from "./autofill";
 import { action, custom, link, select, slider, toggle, unsupported, type SectionDef } from "./rows";
 
 const ENGINE_LIMIT = "Not supported by the Servo engine yet";
@@ -268,14 +269,17 @@ export const SECTIONS: SectionDef[] = [
     cards: [
       {
         title: "Folder sync",
+        rows: [{ kind: "custom", label: "Sync through a shared folder", render: () => <SyncPanel />, full: true }],
+      },
+      {
+        title: "What to sync",
         rows: [
-          toggle("sync", "folderSync", "Sync through a folder", "Point this at a folder your devices share (OneDrive, Dropbox, Syncthing). HakuCX encrypts what it writes there."),
-          custom("Folder", (s) => <TextSetting value={s.sync.folder} placeholder="C:\\Users\\you\\OneDrive\\HakuCX" onSave={(v) => patch({ sync: { folder: v } })} />),
           toggle("sync", "bookmarks", "Bookmarks"),
-          toggle("sync", "history", "History"),
-          toggle("sync", "settings", "Settings"),
-          toggle("sync", "openTabs", "Open tabs"),
           toggle("sync", "speedDial", "Speed Dial"),
+          toggle("sync", "history", "History", "The last 30 days"),
+          toggle("sync", "settings", "Settings", "Appearance, tabs, sidebar, start page, sounds, search, languages and shortcuts. Downloads, privacy, limits and this computer's paths stay local."),
+          toggle("sync", "openTabs", "Open tabs", "See the tabs open on your other devices"),
+          toggle("sync", "passwords", "Passwords, cards and addresses", "Encrypted with your sync passphrase in the shared folder"),
         ],
       },
       { title: "My Flow", rows: [toggle("features", "myFlow", "Enable My Flow")] },
@@ -364,7 +368,16 @@ export const SECTIONS: SectionDef[] = [
     label: "Autofill and passwords",
     icon: "key",
     group: 1,
-    cards: [{ title: "Autofill", rows: [link("Password manager", "haku://settings/passwords")] }],
+    cards: [
+      {
+        title: "Autofill",
+        rows: [
+          link("Password manager", "haku://settings/passwords"),
+          link("Payment methods", "haku://settings/payment-methods"),
+          link("Addresses and more", "haku://settings/addresses"),
+        ],
+      },
+    ],
   },
   {
     id: "vpn",

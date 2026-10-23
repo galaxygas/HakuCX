@@ -49,8 +49,10 @@ cookie = { workspace = true }
 regex = { workspace = true }
 sha2 = { workspace = true }
 time = { workspace = true }
+zeroize = { workspace = true }
 
 [target.'cfg(windows)'.dependencies]
 # Servo's own shell uses ANGLE (EGL over D3D) on Windows instead of WGL.
 servo = { workspace = true, features = ["no-wgl"] }
 windows = { workspace = true }
+windows-future = { workspace = true }

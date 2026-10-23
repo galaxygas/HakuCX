@@ -12,7 +12,13 @@ import type { ContextMenuInfo } from "../ipc/generated/ContextMenuInfo";
 import type { DialogKind } from "../ipc/generated/DialogKind";
 import type { DownloadRecord } from "../ipc/generated/DownloadRecord";
 import type { EngineInfo } from "../ipc/generated/EngineInfo";
+import type { Address } from "../ipc/generated/Address";
+import type { AutofillItem } from "../ipc/generated/AutofillItem";
+import type { CardInfo } from "../ipc/generated/CardInfo";
 import type { ExtensionInfo } from "../ipc/generated/ExtensionInfo";
+import type { LoginInfo } from "../ipc/generated/LoginInfo";
+import type { SyncStatus } from "../ipc/generated/SyncStatus";
+import type { VaultStatus } from "../ipc/generated/VaultStatus";
 import type { Event } from "../ipc/generated/Event";
 import type { Metrics } from "../ipc/generated/Metrics";
 import type { Palette } from "../ipc/generated/Palette";
@@ -28,7 +34,7 @@ import type { ThemeInfo } from "../ipc/generated/ThemeInfo";
 import type { Visit } from "../ipc/generated/Visit";
 import { onEvent, send } from "../ipc/bridge";
 
-export type Popup = "downloads" | "extensions" | "profile" | "site-info" | "blocked" | "main-menu" | "workspaces" | null;
+export type Popup = "downloads" | "extensions" | "profile" | "site-info" | "blocked" | "main-menu" | "workspaces" | "passwords" | null;
 export type Drawer = "easy-setup" | "sidebar-setup" | null;
 
 export type Menu =
@@ -70,6 +76,9 @@ export type PanelState = { loading: boolean; url: string; canGoBack: boolean };
 export type ExtPopup = { id: string; anchor: Rect; width: number; height: number };
 export type ExtInstallPrompt = { request: number; name: string; version: string; warnings: string[]; update: boolean };
 export type ExtPermissionPrompt = { request: number; name: string; warnings: string[] };
+export type VaultView = { status: VaultStatus; logins: LoginInfo[]; neverSave: string[]; cards: CardInfo[]; addresses: Address[] };
+export type PasswordPrompt = { prompt: number; tab: string; origin: string; username: string; password: string; update: boolean };
+export type AutofillSuggest = { tab: string; rect: Rect; kind: string; items: AutofillItem[] };
 
 const HISTORY_POINTS = 60;
 
@@ -113,6 +122,10 @@ type State = {
   extPopup: ExtPopup | null;
   extInstall: ExtInstallPrompt | null;
   extPermissions: ExtPermissionPrompt[];
+  vault: VaultView | null;
+  passwordPrompt: PasswordPrompt | null;
+  autofill: AutofillSuggest | null;
+  sync: SyncStatus | null;
 
   panel: string | null;
   popup: Popup;
@@ -195,6 +208,10 @@ export const useStore = create<State & Actions>((set, get) => ({
   extPopup: null,
   extInstall: null,
   extPermissions: [],
+  vault: null,
+  passwordPrompt: null,
+  autofill: null,
+  sync: null,
 
   panel: null,
   popup: null,
@@ -368,6 +385,24 @@ export const useStore = create<State & Actions>((set, get) => ({
       case "ext-install-prompt":
         set({ extInstall: { request: event.request, name: event.name, version: event.version, warnings: event.warnings, update: event.update } });
         break;
+      case "vault":
+        set({ vault: { status: event.status, logins: event.logins, neverSave: event.neverSave, cards: event.cards, addresses: event.addresses } });
+        break;
+      case "password-prompt":
+        set({ passwordPrompt: { prompt: event.prompt, tab: event.tab, origin: event.origin, username: event.username, password: event.password, update: event.update } });
+        break;
+      case "autofill-suggest":
+        set({ autofill: { tab: event.tab, rect: event.rect, kind: event.kind, items: event.items } });
+        break;
+      case "autofill-hide":
+        set({ autofill: null });
+        break;
+      case "sync":
+        set({ sync: event.status });
+        break;
+      case "revealed":
+        // Answered to the component that asked (it listens with onEvent).
+        break;
       case "ext-permission-prompt":
         set((s) => ({ extPermissions: [...s.extPermissions, { request: event.request, name: event.name, warnings: event.warnings }] }));
         break;
@@ -458,6 +493,7 @@ function handleOpen(target: string) {
       // A click on the page closes transient UI, like clicking outside a popup.
       useStore.setState((st) => ({
         popup: null,
+        autofill: null,
         menu: st.menu?.kind === "page" ? st.menu : null,
         drawer: null,
         palette_open: null,

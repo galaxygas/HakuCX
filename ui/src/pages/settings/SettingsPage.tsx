@@ -18,13 +18,13 @@ import {
   KeyboardSoundsPage,
   LightsPage,
   PanicPage,
-  PasswordsPage,
   SearchEnginesPage,
   ShortcutsPage,
   SitePage,
   SiteSettingsPage,
 } from "./subpages";
 import { Input } from "../../components/Field";
+import { AddressesPage, PasswordsPage, PaymentMethodsPage } from "./autofill";
 
 const GROUP_BREAKS = [0, 1, 2, 3];
 
@@ -237,4 +237,6 @@ const SUBPAGES: Record<string, Sub> = {
   "search-engines": { title: "Manage search engines and site search", parent: "search", render: () => <SearchEnginesPage /> },
   "filter-lists": { title: "Manage lists", parent: "privacy", render: () => <FilterListsPage /> },
   passwords: { title: "Password manager", parent: "autofill", render: () => <PasswordsPage /> },
+  "payment-methods": { title: "Payment methods", parent: "autofill", render: () => <PaymentMethodsPage /> },
+  addresses: { title: "Addresses and more", parent: "autofill", render: () => <AddressesPage /> },
 };

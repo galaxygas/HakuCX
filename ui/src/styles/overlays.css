@@ -866,3 +866,57 @@
 .ext-list li + li {
   margin-top: 4px;
 }
+
+/* password save prompt and autofill suggestions */
+.password-prompt {
+  top: 84px;
+  right: 16px;
+  width: 340px;
+}
+.password-prompt p {
+  margin: 0;
+}
+.autofill-menu {
+  padding: 6px;
+}
+.autofill-item {
+  height: auto;
+  min-height: 40px;
+  padding-top: 4px;
+  padding-bottom: 4px;
+}
+.autofill-item.selected {
+  background: var(--hx-hover);
+}
+.autofill-text {
+  display: block;
+  min-width: 0;
+  text-align: left;
+}
+.autofill-text > * {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.vault-field {
+  display: block;
+}
+.vault-field > span:first-child {
+  display: block;
+  margin-bottom: 4px;
+  color: var(--hx-muted);
+  font-size: 12px;
+}
+.vault-field .text-input {
+  width: 100%;
+}
+.callout.warn {
+  background: rgba(255, 170, 0, 0.12);
+}
+.callout.warn .icon {
+  color: var(--hx-warn);
+}
+.callout p {
+  margin: 0 0 8px;
+}

@@ -1,0 +1,9 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+
+body { font: 15px system-ui, sans-serif; margin: 40px; background: #fafafa; color: #222; }
+form { display: grid; grid-template-columns: 180px 280px; gap: 10px 14px; align-items: center; margin: 20px 0; }
+input, select, textarea { font: inherit; padding: 6px 8px; }
+button { font: inherit; padding: 8px 16px; }
+pre { background: #eee; padding: 12px; border-radius: 6px; }

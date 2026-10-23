@@ -46,6 +46,7 @@ pub struct Settings {
     pub accessibility: Accessibility,
     pub system: System,
     pub sync: Sync,
+    pub autofill: Autofill,
     pub smart_home: SmartHome,
     pub ai: Ai,
     pub shortcuts: Shortcuts,
@@ -82,6 +83,7 @@ impl Default for Settings {
             accessibility: Accessibility::default(),
             system: System::default(),
             sync: Sync::default(),
+            autofill: Autofill::default(),
             smart_home: SmartHome::default(),
             ai: Ai::default(),
             shortcuts: Shortcuts::default(),
@@ -1596,6 +1598,33 @@ impl Default for Sync {
             open_tabs: true,
             passwords: false,
             speed_dial: true,
+        }
+    }
+}
+
+/// Password manager and form autofill.
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, TS)]
+#[serde(default, rename_all = "camelCase")]
+#[ts(export)]
+pub struct Autofill {
+    /// Offer to save passwords entered on sites.
+    pub offer_to_save: bool,
+    /// Suggest saved accounts when a login field is focused.
+    pub suggest_passwords: bool,
+    pub addresses: bool,
+    pub payment_methods: bool,
+    /// Ask for Windows Hello before filling a payment card.
+    pub verify_cards: bool,
+}
+
+impl Default for Autofill {
+    fn default() -> Self {
+        Self {
+            offer_to_save: true,
+            suggest_passwords: true,
+            addresses: true,
+            payment_methods: true,
+            verify_cards: true,
         }
     }
 }

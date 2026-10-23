@@ -7,7 +7,7 @@
 //! Four fixed roots: the bookmarks bar, Speed Dial, other bookmarks, and trash. Deleting moves
 //! a node to the trash; deleting from the trash removes it for good.
 
-use std::collections::HashSet;
+use std::collections::{BTreeMap, HashSet};
 
 use serde::{Deserialize, Serialize};
 use ts_rs::TS;
@@ -35,6 +35,10 @@ pub struct BookmarkNode {
     /// Where it lived before going to the trash, so it can be restored.
     #[serde(default)]
     pub trashed_from: Option<String>,
+    /// Last change (ms), for sync.
+    #[serde(default)]
+    #[ts(skip)]
+    pub modified: i64,
 }
 
 impl BookmarkNode {
@@ -49,11 +53,18 @@ impl BookmarkNode {
 #[ts(export)]
 pub struct Bookmarks {
     pub nodes: Vec<BookmarkNode>,
+    /// Nodes deleted for good: id -> when (ms), so sync does not bring them back.
+    #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+    #[ts(skip)]
+    pub deleted: BTreeMap<String, i64>,
 }
 
 impl Default for Bookmarks {
     fn default() -> Self {
-        let mut b = Bookmarks { nodes: Vec::new() };
+        let mut b = Bookmarks {
+            nodes: Vec::new(),
+            deleted: BTreeMap::new(),
+        };
         b.ensure_roots();
         // Starter Speed Dial; the user can edit or delete all of these.
         for (title, url, color) in [
@@ -117,6 +128,7 @@ impl Bookmarks {
                         added: 0,
                         color: None,
                         trashed_from: None,
+                        modified: 0,
                     },
                 );
             }
@@ -190,6 +202,7 @@ impl Bookmarks {
             added: crate::now_ms(),
             color: None,
             trashed_from: None,
+            modified: crate::now_ms(),
         };
         let id = node.id.clone();
         self.nodes.push(node);
@@ -215,6 +228,7 @@ impl Bookmarks {
         }
         let node = self.get_mut(id).ok_or(BookmarkError::NotFound)?;
         node.title = title.trim().to_owned();
+        node.modified = crate::now_ms();
         if node.url.is_some()
             && let Some(url) = url
         {
@@ -226,6 +240,7 @@ impl Bookmarks {
     pub fn set_color(&mut self, id: &str, color: Option<String>) {
         if let Some(n) = self.get_mut(id) {
             n.color = color;
+            n.modified = crate::now_ms();
         }
     }
 
@@ -248,6 +263,7 @@ impl Bookmarks {
         }
         let node = self.get_mut(id).ok_or(BookmarkError::NotFound)?;
         node.parent = Some(parent.to_owned());
+        node.modified = crate::now_ms();
         if parent != ROOT_TRASH {
             node.trashed_from = None;
         }
@@ -302,6 +318,10 @@ impl Bookmarks {
                 }
             }
             self.nodes.retain(|n| !doomed.contains(&n.id));
+            let now = crate::now_ms();
+            for id in doomed {
+                self.deleted.insert(id, now);
+            }
         } else {
             let from = node.parent.clone();
             self.move_to(id, ROOT_TRASH, None)?;
@@ -332,6 +352,99 @@ impl Bookmarks {
         for id in ids {
             let _ = self.delete(&id);
         }
+    }
+
+    /// Is `id` inside the subtree rooted at `root` (or the root itself)?
+    pub fn within(&self, id: &str, root: &str) -> bool {
+        id == root || self.is_descendant(id, root)
+    }
+
+    /// Combine with another device's copy (folder sync). For each node the most recent change
+    /// wins; nodes deleted for good stay deleted. With `scope`, only that folder's subtree
+    /// takes part (Speed Dial sync without the rest of the bookmarks). New nodes are added at
+    /// the end of their folder; reordering within a folder is not synced. A node the other
+    /// copy added independently with the same title and address in the same folder (such as
+    /// the starter Speed Dial on each device) is not duplicated. Returns whether `self`
+    /// changed.
+    pub fn merge(&mut self, other: &Bookmarks, scope: Option<&str>) -> bool {
+        let before = self.clone();
+        let in_scope_other = |id: &str| scope.is_none_or(|root| other.within(id, root));
+        for (id, at) in &other.deleted {
+            let local_in_scope = self
+                .get(id)
+                .is_none_or(|_| scope.is_none_or(|root| self.within(id, root)));
+            if local_in_scope {
+                let entry = self.deleted.entry(id.clone()).or_insert(*at);
+                *entry = (*entry).max(*at);
+            }
+        }
+        for node in &other.nodes {
+            if ROOTS.contains(&node.id.as_str()) || !in_scope_other(&node.id) {
+                continue;
+            }
+            if self
+                .deleted
+                .get(&node.id)
+                .is_some_and(|at| *at >= node.modified)
+            {
+                continue;
+            }
+            match self.nodes.iter().position(|n| n.id == node.id) {
+                Some(i) => {
+                    if node.modified <= self.nodes[i].modified {
+                        continue;
+                    }
+                    let moved = self.nodes[i].parent != node.parent;
+                    let new_parent = node.parent.clone().unwrap_or_else(|| ROOT_OTHER.into());
+                    let parent_ok = !moved
+                        || (self.get(&new_parent).is_some_and(|p| p.is_folder())
+                            && new_parent != node.id
+                            && !self.is_descendant(&new_parent, &node.id));
+                    let local = &mut self.nodes[i];
+                    local.title = node.title.clone();
+                    local.url = node.url.clone();
+                    local.color = node.color.clone();
+                    local.trashed_from = node.trashed_from.clone();
+                    local.modified = node.modified;
+                    if moved && parent_ok {
+                        local.parent = Some(new_parent);
+                        let n = self.nodes.remove(i);
+                        self.nodes.push(n);
+                    }
+                }
+                None => {
+                    let duplicate = self.nodes.iter().any(|n| {
+                        n.parent == node.parent && n.title == node.title && n.url == node.url
+                    });
+                    if !duplicate {
+                        self.nodes.push(node.clone());
+                    }
+                }
+            }
+        }
+        let deleted = self.deleted.clone();
+        let mut removed: HashSet<String> = self
+            .nodes
+            .iter()
+            .filter(|n| deleted.get(&n.id).is_some_and(|at| *at >= n.modified))
+            .filter(|n| !ROOTS.contains(&n.id.as_str()))
+            .map(|n| n.id.clone())
+            .collect();
+        // Their descendants go with them.
+        loop {
+            let count = removed.len();
+            for n in &self.nodes {
+                if n.parent.as_ref().is_some_and(|p| removed.contains(p)) {
+                    removed.insert(n.id.clone());
+                }
+            }
+            if removed.len() == count {
+                break;
+            }
+        }
+        self.nodes.retain(|n| !removed.contains(&n.id));
+        self.ensure_roots();
+        *self != before
     }
 
     /// Bookmarks (not in the trash) whose URL matches exactly.
@@ -513,7 +626,10 @@ mod tests {
     use super::*;
 
     fn empty() -> Bookmarks {
-        let mut b = Bookmarks { nodes: Vec::new() };
+        let mut b = Bookmarks {
+            nodes: Vec::new(),
+            deleted: BTreeMap::new(),
+        };
         b.ensure_roots();
         b
     }
@@ -633,6 +749,52 @@ mod tests {
     }
 
     #[test]
+    fn merging_two_devices() {
+        let mut a = Bookmarks::default();
+        let mut b = a.clone();
+        // Each device starts with its own copy of the starter Speed Dial: no duplicates.
+        b = {
+            let mut fresh = Bookmarks::default();
+            fresh.merge(&b, None);
+            fresh
+        };
+        assert_eq!(b.children(ROOT_SPEED_DIAL).len(), 8);
+
+        let x = a
+            .add(ROOT_BAR, "Rust", Some("https://www.rust-lang.org/"), None)
+            .unwrap();
+        let folder = a.add(ROOT_OTHER, "Games", None, None).unwrap();
+        let y = a
+            .add(&folder, "Servo", Some("https://servo.org/"), None)
+            .unwrap();
+        assert!(b.merge(&a, None));
+        assert_eq!(b.get(&y).unwrap().parent.as_deref(), Some(folder.as_str()));
+
+        // b renames later; a moves to trash and then deletes the folder for good.
+        std::thread::sleep(std::time::Duration::from_millis(3));
+        b.rename(&x, "Rust lang", Some("https://www.rust-lang.org/"))
+            .unwrap();
+        a.delete(&folder).unwrap();
+        a.delete(&folder).unwrap();
+        assert!(a.get(&y).is_none());
+        a.merge(&b, None);
+        b.merge(&a, None);
+        assert_eq!(a.get(&x).unwrap().title, "Rust lang");
+        assert!(b.get(&folder).is_none() && b.get(&y).is_none());
+        assert!(!a.merge(&b, None) && !b.merge(&a, None));
+
+        // Speed Dial only: bookmarks-bar changes do not travel.
+        let z = a
+            .add(ROOT_BAR, "Only here", Some("https://z.test/"), None)
+            .unwrap();
+        let d = a
+            .add(ROOT_SPEED_DIAL, "Dial", Some("https://d.test/"), None)
+            .unwrap();
+        b.merge(&a, Some(ROOT_SPEED_DIAL));
+        assert!(b.get(&z).is_none() && b.get(&d).is_some());
+    }
+
+    #[test]
     fn repair_orphans() {
         let mut b = empty();
         b.nodes.push(BookmarkNode {
@@ -643,6 +805,7 @@ mod tests {
             added: 0,
             color: None,
             trashed_from: None,
+            modified: 0,
         });
         b.ensure_roots();
         assert_eq!(b.get("x").unwrap().parent.as_deref(), Some(ROOT_OTHER));

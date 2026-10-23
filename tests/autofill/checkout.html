@@ -1,0 +1,29 @@
+<!doctype html>
+<!-- This Source Code Form is subject to the terms of the Mozilla Public
+   - License, v. 2.0. If a copy of the MPL was not distributed with this
+   - file, You can obtain one at https://mozilla.org/MPL/2.0/. -->
+<html lang="en">
+<head><meta charset="utf-8"><title>Checkout</title><link rel="stylesheet" href="style.css"></head>
+<body>
+  <h1>Checkout</h1>
+  <form onsubmit="return false">
+    <label>Full name</label><input name="name" autocomplete="name">
+    <label>Street address</label><input name="address1" autocomplete="address-line1">
+    <label>Apartment</label><input name="address2" autocomplete="address-line2">
+    <label>City</label><input name="city">
+    <label>Postal code</label><input name="zip">
+    <label>Country</label><select name="country"><option value="">Choose</option><option value="US">United States</option><option value="GB">United Kingdom</option><option value="DE">Germany</option></select>
+    <label>Phone</label><input name="phone" type="tel">
+    <label>Email</label><input name="email" type="email">
+  </form>
+  <form onsubmit="return false">
+    <label>Name on card</label><input name="ccname" autocomplete="cc-name">
+    <label>Card number</label><input name="cardnumber" autocomplete="cc-number">
+    <label>Expiry month</label><select name="exp-month" autocomplete="cc-exp-month"><option value="">MM</option><option>01</option><option>02</option><option>03</option><option>04</option><option>05</option><option>06</option><option>07</option><option>08</option><option>09</option><option>10</option><option>11</option><option>12</option></select>
+    <label>Expiry year</label><select name="exp-year" autocomplete="cc-exp-year"><option value="">YYYY</option><option>2026</option><option>2027</option><option>2028</option><option>2029</option><option>2030</option></select>
+    <label>Security code</label><input name="cvc" autocomplete="cc-csc">
+  </form>
+  <pre id="state"></pre>
+  <script src="state.js"></script>
+</body>
+</html>

@@ -17,7 +17,9 @@ use crate::records::{DownloadRecord, Pinboards, SiteMods};
 use crate::session::{IslandId, Session, TabId, WorkspaceId};
 use crate::settings::{Cleaner, Settings};
 use crate::storage::ProfileInfo;
+use crate::sync::SyncedTab;
 use crate::themes::{Palette, ThemeInfo, UserTheme};
+use crate::vault::Address;
 
 /// A rectangle in CSS pixels of the UI shell (top-left origin).
 #[derive(Clone, Copy, Debug, Default, PartialEq, Serialize, Deserialize, TS)]
@@ -522,6 +524,63 @@ pub enum Command {
         enabled: bool,
     },
 
+    // ---- passwords, autofill, sync
+    /// Open the vault with its recovery password (when Windows cannot unlock it).
+    VaultUnlock {
+        password: String,
+    },
+    /// Set or remove (`None`) the vault's recovery password.
+    VaultSetRecovery {
+        password: Option<String>,
+    },
+    /// Show a saved password or card number, after Windows Hello. Answered with
+    /// [`Event::Revealed`].
+    VaultReveal {
+        request: u32,
+        id: String,
+    },
+    SaveLogin {
+        login: LoginInput,
+    },
+    SaveCard {
+        card: CardInput,
+    },
+    SaveAddress {
+        address: Address,
+    },
+    /// Delete a login, card or address.
+    VaultDelete {
+        id: String,
+    },
+    /// Allow offering to save passwords on a site again.
+    NeverSaveRemove {
+        origin: String,
+    },
+    /// Answer to [`Event::PasswordPrompt`]: `save`, `never` or `dismiss`. The user may have
+    /// corrected the username or password in the prompt.
+    PasswordPromptAnswer {
+        prompt: u32,
+        action: String,
+        username: String,
+        password: String,
+    },
+    /// Fill a suggestion from [`Event::AutofillSuggest`] into the tab's focused form.
+    AutofillPick {
+        tab: TabId,
+        id: String,
+    },
+    PasswordsImport,
+    PasswordsExport,
+    /// Start syncing through `folder` with `passphrase` (joining the folder if other devices
+    /// already use it).
+    SyncSetup {
+        folder: String,
+        passphrase: String,
+    },
+    SyncNow,
+    /// Stop syncing and forget the passphrase on this device.
+    SyncDisconnect,
+
     // ---- misc
     Panic,
     PlaySound {
@@ -642,6 +701,105 @@ pub struct ContextMenuInfo {
     /// Items extensions added with `contextMenus`/`menus` that apply to this click.
     #[serde(default)]
     pub extension_items: Vec<ExtMenuItem>,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, TS)]
+#[serde(rename_all = "camelCase")]
+#[ts(export)]
+pub struct VaultStatus {
+    /// `ready`, `needs-password` (Windows lost the key; the recovery password opens it),
+    /// `unavailable` (private window of a profile with no vault) or `error`.
+    pub state: String,
+    pub message: String,
+    pub recovery_password: bool,
+    /// Windows Hello can verify the user before secrets are shown.
+    pub hello: bool,
+    /// Changes are saved (not in private windows).
+    pub writable: bool,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, TS)]
+#[serde(rename_all = "camelCase")]
+#[ts(export)]
+pub struct LoginInfo {
+    pub id: String,
+    pub origin: String,
+    pub username: String,
+    pub note: String,
+    pub created: i64,
+    pub modified: i64,
+    pub last_used: i64,
+    pub times_used: u32,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, TS)]
+#[serde(rename_all = "camelCase")]
+#[ts(export)]
+pub struct CardInfo {
+    pub id: String,
+    pub nickname: String,
+    pub holder: String,
+    pub brand: String,
+    pub last4: String,
+    pub exp_month: u8,
+    pub exp_year: u16,
+}
+
+/// A login the user adds or edits. `password: None` keeps the saved one.
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, TS)]
+#[serde(rename_all = "camelCase")]
+#[ts(export)]
+pub struct LoginInput {
+    pub id: Option<String>,
+    /// A site address (`https://example.com/login` or `example.com`).
+    pub site: String,
+    pub username: String,
+    pub password: Option<String>,
+    pub note: String,
+}
+
+/// A card the user adds or edits. `number: None` keeps the saved one.
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, TS)]
+#[serde(rename_all = "camelCase")]
+#[ts(export)]
+pub struct CardInput {
+    pub id: Option<String>,
+    pub nickname: String,
+    pub holder: String,
+    pub number: Option<String>,
+    pub exp_month: u8,
+    pub exp_year: u16,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, TS)]
+#[serde(rename_all = "camelCase")]
+#[ts(export)]
+pub struct AutofillItem {
+    pub id: String,
+    pub label: String,
+    pub sublabel: String,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, TS)]
+#[serde(rename_all = "camelCase")]
+#[ts(export)]
+pub struct SyncDevice {
+    pub id: String,
+    pub name: String,
+    pub written_at: i64,
+    pub tabs: Vec<SyncedTab>,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, TS)]
+#[serde(rename_all = "camelCase")]
+#[ts(export)]
+pub struct SyncStatus {
+    /// `off`, `needs-passphrase`, `idle`, `syncing` or `error`.
+    pub state: String,
+    pub message: String,
+    pub last_sync: Option<i64>,
+    pub this_device: String,
+    pub devices: Vec<SyncDevice>,
 }
 
 /// A context-menu item contributed by an extension, already filtered for this click.
@@ -964,6 +1122,40 @@ pub enum Event {
         request: u32,
         name: String,
         warnings: Vec<String>,
+    },
+    /// The vault's contents without secrets (passwords and card numbers stay in the core).
+    Vault {
+        status: VaultStatus,
+        logins: Vec<LoginInfo>,
+        never_save: Vec<String>,
+        cards: Vec<CardInfo>,
+        addresses: Vec<Address>,
+    },
+    /// A secret the user asked to see (`None` if verification failed or was cancelled).
+    Revealed {
+        request: u32,
+        value: Option<String>,
+    },
+    /// Offer to save (or update) a password the user just submitted.
+    PasswordPrompt {
+        prompt: u32,
+        tab: TabId,
+        origin: String,
+        username: String,
+        password: String,
+        update: bool,
+    },
+    /// Saved accounts, addresses or cards for the focused field. `rect` is the field in UI
+    /// coordinates.
+    AutofillSuggest {
+        tab: TabId,
+        rect: Rect,
+        kind: String,
+        items: Vec<AutofillItem>,
+    },
+    AutofillHide,
+    Sync {
+        status: SyncStatus,
     },
     Pinboards {
         pinboards: Pinboards,

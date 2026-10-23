@@ -17,6 +17,7 @@ mod extensions;
 mod favicon;
 mod keyutils;
 mod limits;
+mod os_secrets;
 mod protocol;
 mod texture_context;
 

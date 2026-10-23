@@ -16,7 +16,9 @@ pub mod records;
 pub mod session;
 pub mod settings;
 pub mod storage;
+pub mod sync;
 pub mod themes;
+pub mod vault;
 
 /// Milliseconds since the Unix epoch.
 pub fn now_ms() -> i64 {

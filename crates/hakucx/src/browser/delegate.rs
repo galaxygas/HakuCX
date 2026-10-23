@@ -101,9 +101,12 @@ impl WebViewDelegate for Browser {
         };
         self.set_loading(&tab, status);
         if status == LoadStatus::Started {
-            // The old document's content scripts are gone.
+            // The old document's content scripts and focused fields are gone.
             let navigated = tab.clone();
-            self.defer(move |b| b.ext_tab_navigated(&navigated));
+            self.defer(move |b| {
+                b.ext_tab_navigated(&navigated);
+                b.vault_hide_suggestions();
+            });
         }
         if status == LoadStatus::HeadParsed || status == LoadStatus::Complete {
             let tab_for_style = tab.clone();

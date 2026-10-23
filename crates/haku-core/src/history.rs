@@ -34,6 +34,15 @@ pub struct UrlStat {
     pub last_visit: i64,
 }
 
+/// One visit as folder sync carries it.
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct SyncVisit {
+    pub url: String,
+    pub title: String,
+    pub at: i64,
+    pub transition: u8,
+}
+
 /// How a navigation was started; typed URLs weigh more in suggestions.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Transition {
@@ -294,6 +303,49 @@ impl History {
         rows.collect()
     }
 
+    /// Visits since `since` (ms), newest first, for folder sync.
+    pub fn visits_since(&self, since: i64, limit: usize) -> rusqlite::Result<Vec<SyncVisit>> {
+        let mut stmt = self.conn.prepare(
+            "SELECT u.url, u.title, v.visited_at, v.transition FROM visits v JOIN urls u ON u.id = v.url_id
+             WHERE v.visited_at >= ?1 ORDER BY v.visited_at DESC LIMIT ?2",
+        )?;
+        let rows = stmt.query_map(params![since, limit as i64], |r| {
+            Ok(SyncVisit {
+                url: r.get(0)?,
+                title: r.get(1)?,
+                at: r.get(2)?,
+                transition: r.get::<_, i64>(3)? as u8,
+            })
+        })?;
+        rows.collect()
+    }
+
+    /// Add visits from another device, skipping ones already here (same address and time).
+    /// Returns how many were added.
+    pub fn import_visits(&self, visits: &[SyncVisit]) -> rusqlite::Result<usize> {
+        let mut added = 0;
+        for v in visits {
+            let exists: bool = self.conn.query_row(
+                "SELECT EXISTS(SELECT 1 FROM visits v JOIN urls u ON u.id = v.url_id
+                 WHERE u.url = ?1 AND v.visited_at = ?2)",
+                params![v.url, v.at],
+                |r| r.get(0),
+            )?;
+            if exists {
+                continue;
+            }
+            let transition = match v.transition {
+                1 => Transition::Typed,
+                2 => Transition::Bookmark,
+                3 => Transition::Reload,
+                _ => Transition::Link,
+            };
+            self.record_visit(&v.url, &v.title, transition, v.at)?;
+            added += 1;
+        }
+        Ok(added)
+    }
+
     pub fn delete_visit(&self, id: i64) -> rusqlite::Result<()> {
         let url_id: Option<i64> = self
             .conn
@@ -432,6 +484,25 @@ mod tests {
         assert_eq!(visits[0].3, Transition::Typed);
         assert_eq!(visits[1].3, Transition::Reload);
         assert_eq!(visits[0].0, urls[1].0);
+    }
+
+    #[test]
+    fn sync_export_and_import() {
+        let a = History::in_memory().unwrap();
+        a.record_visit("https://a.test/", "A", Transition::Typed, 100)
+            .unwrap();
+        a.record_visit("https://b.test/", "B", Transition::Link, 200)
+            .unwrap();
+        let visits = a.visits_since(150, 10).unwrap();
+        assert_eq!(visits.len(), 1);
+        let all = a.visits_since(0, 10).unwrap();
+        let b = History::in_memory().unwrap();
+        b.record_visit("https://a.test/", "A", Transition::Typed, 100)
+            .unwrap();
+        assert_eq!(b.import_visits(&all).unwrap(), 1);
+        assert_eq!(b.import_visits(&all).unwrap(), 0);
+        assert_eq!(b.visit_count().unwrap(), 2);
+        assert_eq!(b.suggest("a.test", 5, 1000).unwrap()[0].typed_count, 1);
     }
 
     #[test]

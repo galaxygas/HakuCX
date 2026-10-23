@@ -2,7 +2,7 @@
 
 HakuCX is an independent, open-source desktop browser with a GX-style interface: themes, wallpapers, sounds, a sidebar, resource limiters and deep customization. It is built in **Rust** on the **[Servo](https://servo.org) web engine**. It is not Chromium, not Electron, and not affiliated with Opera.
 
-> **Status: early development.** Browsing, tabs, workspaces, islands, split screen, history, bookmarks, Speed Dial, downloads, ad and tracker blocking, the full GX-style interface and settings, GX Control, GX Cleaner, shaders, web mods, sounds, GX Corner, a bring-your-own-key AI assistant and Chrome/Firefox extensions work today. The password manager, sync, GX Lights and the installer are still being built (see [the roadmap](#roadmap)). Expect sites that break: Servo is younger than Blink and Gecko.
+> **Status: early development.** Browsing, tabs, workspaces, islands, split screen, history, bookmarks, Speed Dial, downloads, ad and tracker blocking, the full GX-style interface and settings, GX Control, GX Cleaner, shaders, web mods, sounds, GX Corner, a bring-your-own-key AI assistant, Chrome/Firefox extensions, an encrypted password manager with autofill, and folder sync work today. GX Lights and the installer are still being built (see [the roadmap](#roadmap)). Expect sites that break: Servo is younger than Blink and Gecko.
 
 ## Why
 
@@ -69,7 +69,7 @@ See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for how the pieces fit together
 | M4 | Ad/tracker blocking, privacy, permissions, proxy/VPN, downloads | mostly done (third-party cookie control and DoH need engine support) |
 | M5 | GX Control (kernel limits), Cleaner, shaders, web mods, sounds, lights, player, video tools | in progress: GX Lights, video pop-out and the miniplayer remain |
 | M6 | WebExtensions runtime (Chrome MV2/MV3, Firefox) | done (see [EXTENSIONS.md](docs/EXTENSIONS.md) for what each API supports) |
-| M7 | Mods, Corner, AI, password manager, sync | in progress: Mods, GX Corner, Rewards and AI work; password manager and sync remain |
+| M7 | Mods, Corner, AI, password manager, sync | done (see [PASSWORDS-AND-SYNC.md](docs/PASSWORDS-AND-SYNC.md)); My Flow (phone pairing) remains |
 | M8 | Installer, updater, default-browser integration | planned |
 
 ## Contributing

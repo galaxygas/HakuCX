@@ -626,18 +626,4 @@ function setBlockingOff(host: string, off: boolean) {
   patch({ privacy: { adExceptions: toggle(privacy.adExceptions), trackerExceptions: toggle(privacy.trackerExceptions) } });
 }
 
-// ------------------------------------------------------------------ passwords
 
-export function PasswordsPage() {
-  return (
-    <div className="settings-card card">
-      <div className="callout">
-        <Icon name="key" size={16} />
-        <span>
-          The HakuCX password manager is not built yet. It will keep passwords in an encrypted vault on this device, unlocked with Windows Hello, and import
-          from other browsers. Until then HakuCX does not save or fill any passwords.
-        </span>
-      </div>
-    </div>
-  );
-}
