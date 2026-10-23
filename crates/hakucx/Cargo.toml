@@ -7,6 +7,8 @@ license.workspace = true
 repository.workspace = true
 rust-version.workspace = true
 authors.workspace = true
+# Released as a browser, not as a library on crates.io.
+publish = false
 build = "build.rs"
 
 [[bin]]
