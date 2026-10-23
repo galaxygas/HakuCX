@@ -2012,6 +2012,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "gleam"
+version = "0.16.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8265d389bd9817de31d5ee7e783f288ff94d5007b51474332b61015eb346c8e1"
+dependencies = [
+ "gl_generator",
+]
+
+[[package]]
 name = "glifo"
 version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2104,7 +2113,7 @@ name = "hakucx"
 version = "0.1.0"
 dependencies = [
  "euclid",
- "gleam",
+ "gleam 0.16.0",
  "glow",
  "headers",
  "http",
@@ -6409,7 +6418,7 @@ dependencies = [
  "crossbeam-channel",
  "dpi",
  "euclid",
- "gleam",
+ "gleam 0.15.1",
  "image",
  "log",
  "rayon",
@@ -6445,7 +6454,7 @@ dependencies = [
  "crossbeam-channel",
  "dpi",
  "euclid",
- "gleam",
+ "gleam 0.15.1",
  "glow",
  "image",
  "log",
@@ -8499,7 +8508,7 @@ dependencies = [
  "derive_more",
  "etagere",
  "euclid",
- "gleam",
+ "gleam 0.15.1",
  "glslopt",
  "lazy_static",
  "log",

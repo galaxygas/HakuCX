@@ -1,4 +1,4 @@
-﻿[workspace]
+[workspace]
 resolver = "3"
 members = ["crates/hakucx", "crates/haku-core"]
 
@@ -17,7 +17,7 @@ winit = "0.30.13"
 euclid = "0.22"
 url = "2.5"
 glow = "0.17"
-gleam = "0.15"
+gleam = "0.16"
 surfman = "0.14"
 rustls = { version = "0.23", default-features = false, features = ["aws-lc-rs", "std", "tls12", "logging"] }
 headers = "0.4"
