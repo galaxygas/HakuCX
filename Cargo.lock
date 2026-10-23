@@ -2047,6 +2047,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "glow"
+version = "0.18.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "263218b0ba2b0715c3370fb04674f5f8aa331594b521c94ff0a8e4a8472d1386"
+dependencies = [
+ "js-sys",
+ "slotmap",
+ "wasm-bindgen",
+ "web-sys",
+]
+
+[[package]]
 name = "glslopt"
 version = "0.1.14"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2105,7 +2117,7 @@ version = "0.1.0"
 dependencies = [
  "euclid",
  "gleam",
- "glow",
+ "glow 0.18.0",
  "headers",
  "http",
  "log",
@@ -5592,7 +5604,7 @@ checksum = "b7684bbead0695a10a4c859cae6cf62483b0a6912c71db436f8702c862d986f5"
 dependencies = [
  "crossbeam-channel",
  "euclid",
- "glow",
+ "glow 0.17.0",
  "kurbo",
  "log",
  "malloc_size_of_derive",
@@ -6446,7 +6458,7 @@ dependencies = [
  "dpi",
  "euclid",
  "gleam",
- "glow",
+ "glow 0.17.0",
  "image",
  "log",
  "malloc_size_of_derive",
@@ -6550,7 +6562,7 @@ dependencies = [
  "encoding_rs",
  "euclid",
  "flate2",
- "glow",
+ "glow 0.17.0",
  "headers",
  "html5ever",
  "http",
@@ -7319,7 +7331,7 @@ dependencies = [
  "euclid",
  "fnv",
  "gl_generator",
- "glow",
+ "glow 0.17.0",
  "libc",
  "log",
  "objc2 0.6.5",
