@@ -83,14 +83,16 @@ impl DownloadRecord {
             .unwrap_or_default();
         let mime = self.mime.as_str();
         match ext.as_str() {
-            "pdf" | "doc" | "docx" | "odt" | "rtf" | "txt" | "md" | "xls" | "xlsx" | "ods" | "csv"
-            | "ppt" | "pptx" | "odp" | "epub" => FileCategory::Documents,
+            "pdf" | "doc" | "docx" | "odt" | "rtf" | "txt" | "md" | "xls" | "xlsx" | "ods"
+            | "csv" | "ppt" | "pptx" | "odp" | "epub" => FileCategory::Documents,
             "png" | "jpg" | "jpeg" | "gif" | "webp" | "avif" | "bmp" | "svg" | "ico" | "tif"
             | "tiff" | "heic" => FileCategory::Images,
             "mp4" | "mkv" | "webm" | "mov" | "avi" | "m4v" | "wmv" | "flv" => FileCategory::Videos,
             "mp3" | "wav" | "flac" | "ogg" | "opus" | "m4a" | "aac" | "wma" => FileCategory::Music,
             "zip" | "7z" | "rar" | "tar" | "gz" | "xz" | "bz2" | "zst" => FileCategory::Archives,
-            "exe" | "msi" | "msix" | "appx" | "bat" | "cmd" | "ps1" | "jar" => FileCategory::Programs,
+            "exe" | "msi" | "msix" | "appx" | "bat" | "cmd" | "ps1" | "jar" => {
+                FileCategory::Programs
+            }
             _ if mime.starts_with("image/") => FileCategory::Images,
             _ if mime.starts_with("video/") => FileCategory::Videos,
             _ if mime.starts_with("audio/") => FileCategory::Music,
@@ -100,7 +102,10 @@ impl DownloadRecord {
     }
 
     pub fn is_active(&self) -> bool {
-        matches!(self.state, DownloadState::InProgress | DownloadState::Paused)
+        matches!(
+            self.state,
+            DownloadState::InProgress | DownloadState::Paused
+        )
     }
 }
 
@@ -121,7 +126,7 @@ impl DownloadList {
             match self.items.iter().rposition(|d| !d.is_active()) {
                 Some(i) => {
                     self.items.remove(i);
-                },
+                }
                 None => break,
             }
         }
@@ -171,7 +176,11 @@ pub fn sanitize_file_name(name: &str) -> String {
         let stem: String = out.chars().take(200 - ext.chars().count()).collect();
         out = format!("{stem}{ext}");
     }
-    let stem = out.split('.').next().unwrap_or_default().to_ascii_uppercase();
+    let stem = out
+        .split('.')
+        .next()
+        .unwrap_or_default()
+        .to_ascii_uppercase();
     const RESERVED: &[&str] = &[
         "CON", "PRN", "AUX", "NUL", "COM1", "COM2", "COM3", "COM4", "COM5", "COM6", "COM7", "COM8",
         "COM9", "LPT1", "LPT2", "LPT3", "LPT4", "LPT5", "LPT6", "LPT7", "LPT8", "LPT9",
@@ -179,18 +188,32 @@ pub fn sanitize_file_name(name: &str) -> String {
     if RESERVED.contains(&stem.as_str()) {
         out = format!("_{out}");
     }
-    if out.is_empty() { "download".into() } else { out }
+    if out.is_empty() {
+        "download".into()
+    } else {
+        out
+    }
 }
 
 /// `name.ext`, `name (1).ext`, `name (2).ext`, ... the first that `exists` says is free.
-pub fn unique_file_name(dir: &std::path::Path, name: &str, exists: impl Fn(&std::path::Path) -> bool) -> std::path::PathBuf {
+pub fn unique_file_name(
+    dir: &std::path::Path,
+    name: &str,
+    exists: impl Fn(&std::path::Path) -> bool,
+) -> std::path::PathBuf {
     let candidate = dir.join(name);
     if !exists(&candidate) {
         return candidate;
     }
     let path = std::path::Path::new(name);
-    let stem = path.file_stem().map(|s| s.to_string_lossy().into_owned()).unwrap_or_default();
-    let ext = path.extension().map(|e| format!(".{}", e.to_string_lossy())).unwrap_or_default();
+    let stem = path
+        .file_stem()
+        .map(|s| s.to_string_lossy().into_owned())
+        .unwrap_or_default();
+    let ext = path
+        .extension()
+        .map(|e| format!(".{}", e.to_string_lossy()))
+        .unwrap_or_default();
     for n in 1..10_000 {
         let candidate = dir.join(format!("{stem} ({n}){ext}"));
         if !exists(&candidate) {
@@ -316,7 +339,11 @@ impl SiteMods {
             .iter()
             .filter(|m| m.enabled)
             .filter(|m| {
-                let d = m.domain.trim().trim_start_matches("*.").to_ascii_lowercase();
+                let d = m
+                    .domain
+                    .trim()
+                    .trim_start_matches("*.")
+                    .to_ascii_lowercase();
                 !d.is_empty() && (host == d || host.ends_with(&format!(".{d}")))
             })
             .map(|m| m.css.as_str())
@@ -370,7 +397,11 @@ mod tests {
         let mut l = DownloadList::default();
         for i in 0..(MAX_DOWNLOAD_RECORDS + 5) {
             let mut r = DownloadRecord::new("https://x/", &format!("{i}"), "", "", None);
-            r.state = if i == 0 { DownloadState::InProgress } else { DownloadState::Completed };
+            r.state = if i == 0 {
+                DownloadState::InProgress
+            } else {
+                DownloadState::Completed
+            };
             l.push(r);
         }
         assert_eq!(l.items.len(), MAX_DOWNLOAD_RECORDS);
@@ -386,9 +417,22 @@ mod tests {
     fn site_mods_match_subdomains_only() {
         let mods = SiteMods {
             mods: vec![
-                SiteMod { domain: "youtube.com".into(), css: "a{}".into(), ..Default::default() },
-                SiteMod { domain: "tube.com".into(), css: "b{}".into(), ..Default::default() },
-                SiteMod { domain: "youtube.com".into(), css: "c{}".into(), enabled: false, ..Default::default() },
+                SiteMod {
+                    domain: "youtube.com".into(),
+                    css: "a{}".into(),
+                    ..Default::default()
+                },
+                SiteMod {
+                    domain: "tube.com".into(),
+                    css: "b{}".into(),
+                    ..Default::default()
+                },
+                SiteMod {
+                    domain: "youtube.com".into(),
+                    css: "c{}".into(),
+                    enabled: false,
+                    ..Default::default()
+                },
             ],
         };
         assert_eq!(mods.css_for_host("www.youtube.com"), "a{}");

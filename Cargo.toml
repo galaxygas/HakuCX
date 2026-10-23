@@ -36,6 +36,18 @@ tempfile = "3"
 include_dir = "0.7"
 ts-rs = { version = "12", features = ["serde-json-impl"] }
 dirs = "7"
+image = { version = "0.25", default-features = false, features = ["png"] }
+base64 = "0.22"
+rfd = "0.17"
+open = "5"
+# Thread-safe engine (no "single-thread"), so filter engines can be built off the UI thread.
+adblock = { version = "0.13", default-features = false, features = ["embedded-domain-resolver", "full-regex-handling"] }
+content-security-policy = "0.9"
+sysinfo = { version = "0.39", default-features = false, features = ["system"] }
+windows = { version = "0.62", features = ["Win32_Foundation", "Win32_Security", "Win32_System_JobObjects", "Win32_System_Threading"] }
+keyring = { version = "3.6", features = ["windows-native"] }
+rodio = { version = "0.23", default-features = false, features = ["playback"] }
+reqwest = { version = "0.13", default-features = false, features = ["rustls", "blocking", "http2", "charset", "gzip", "brotli", "deflate", "json"] }
 haku-core = { path = "crates/haku-core" }
 
 # Servo is enormous; keep dev builds usable and the target dir small.

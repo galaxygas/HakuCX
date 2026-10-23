@@ -3,4 +3,4 @@
 /**
  * Page actions from menus, shortcuts and the context menu.
  */
-export type PageAction = "copy-address" | "view-source" | "toggle-reader" | "toggle-force-dark" | "save-page" | "screenshot" | "qr-code" | "translate" | "wayback" | "add-to-speed-dial" | "bookmark" | "engine-cut" | "engine-copy" | "engine-paste" | "engine-select-all" | "copy-link" | "open-link-in-new-tab" | "open-link-in-background-tab" | "open-link-in-private-window" | "copy-image-link" | "open-image-in-new-tab" | "save-link-as" | "save-image-as" | "search-selection" | "copy-selection";
+export type PageAction = "copy-address" | "view-source" | "toggle-reader" | "toggle-force-dark" | "save-page" | "screenshot" | "qr-code" | "translate" | "wayback" | "add-to-speed-dial" | "bookmark" | "engine-cut" | "engine-copy" | "engine-paste" | "engine-select-all" | "copy-link" | "open-link-in-new-tab" | "open-link-in-background-tab" | "open-link-in-private-window" | "copy-image-link" | "open-image-in-new-tab" | "save-link-as" | "save-image-as" | "search-selection" | "copy-selection" | "scroll-to-top";

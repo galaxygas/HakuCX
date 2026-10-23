@@ -66,7 +66,9 @@ impl Default for Bookmarks {
             ("Steam", "https://store.steampowered.com/", "#1b2838"),
             ("Servo", "https://servo.org/", "#2c9f6f"),
         ] {
-            let id = b.add(ROOT_SPEED_DIAL, title, Some(url), None).expect("root exists");
+            let id = b
+                .add(ROOT_SPEED_DIAL, title, Some(url), None)
+                .expect("root exists");
             b.set_color(&id, Some(color.into()));
         }
         b
@@ -197,7 +199,12 @@ impl Bookmarks {
         Ok(id)
     }
 
-    pub fn rename(&mut self, id: &str, title: &str, url: Option<&str>) -> Result<(), BookmarkError> {
+    pub fn rename(
+        &mut self,
+        id: &str,
+        title: &str,
+        url: Option<&str>,
+    ) -> Result<(), BookmarkError> {
         if ROOTS.contains(&id) {
             return Err(BookmarkError::Root);
         }
@@ -223,7 +230,12 @@ impl Bookmarks {
     }
 
     /// Move a node into `parent` at sibling position `index` (end if `None`).
-    pub fn move_to(&mut self, id: &str, parent: &str, index: Option<usize>) -> Result<(), BookmarkError> {
+    pub fn move_to(
+        &mut self,
+        id: &str,
+        parent: &str,
+        index: Option<usize>,
+    ) -> Result<(), BookmarkError> {
         if ROOTS.contains(&id) {
             return Err(BookmarkError::Root);
         }
@@ -248,7 +260,9 @@ impl Bookmarks {
 
     /// Place `id` at sibling position `index` within its current parent.
     fn reorder(&mut self, id: &str, index: usize) {
-        let Some(parent) = self.get(id).and_then(|n| n.parent.clone()) else { return };
+        let Some(parent) = self.get(id).and_then(|n| n.parent.clone()) else {
+            return;
+        };
         let pos = self.nodes.iter().position(|n| n.id == id).expect("exists");
         let node = self.nodes.remove(pos);
         let sibling_positions: Vec<usize> = self
@@ -260,7 +274,10 @@ impl Bookmarks {
             .collect();
         let insert_at = match sibling_positions.get(index) {
             Some(&i) => i,
-            None => sibling_positions.last().map(|&i| i + 1).unwrap_or(self.nodes.len()),
+            None => sibling_positions
+                .last()
+                .map(|&i| i + 1)
+                .unwrap_or(self.nodes.len()),
         };
         self.nodes.insert(insert_at, node);
     }
@@ -307,7 +324,11 @@ impl Bookmarks {
     }
 
     pub fn empty_trash(&mut self) {
-        let ids: Vec<String> = self.children(ROOT_TRASH).iter().map(|n| n.id.clone()).collect();
+        let ids: Vec<String> = self
+            .children(ROOT_TRASH)
+            .iter()
+            .map(|n| n.id.clone())
+            .collect();
         for id in ids {
             let _ = self.delete(&id);
         }
@@ -332,7 +353,9 @@ impl Bookmarks {
             .filter(|n| n.url.is_some() && !self.is_descendant(&n.id, ROOT_TRASH))
             .filter(|n| {
                 n.title.to_lowercase().contains(&q)
-                    || n.url.as_deref().is_some_and(|u| u.to_lowercase().contains(&q))
+                    || n.url
+                        .as_deref()
+                        .is_some_and(|u| u.to_lowercase().contains(&q))
             })
             .take(limit)
             .collect()
@@ -342,7 +365,12 @@ impl Bookmarks {
 
     /// Import a Netscape bookmark file (what every browser exports) into a new folder under
     /// `parent`. Returns the number of bookmarks imported.
-    pub fn import_netscape(&mut self, html: &str, parent: &str, folder_name: &str) -> Result<usize, BookmarkError> {
+    pub fn import_netscape(
+        &mut self,
+        html: &str,
+        parent: &str,
+        folder_name: &str,
+    ) -> Result<usize, BookmarkError> {
         let root = self.add(parent, folder_name, None, None)?;
         let mut stack = vec![root.clone()];
         let mut pending_folder: Option<String> = None;
@@ -351,7 +379,9 @@ impl Bookmarks {
         let mut i = 0;
         while let Some(rel) = lower[i..].find('<') {
             let start = i + rel;
-            let Some(end_rel) = lower[start..].find('>') else { break };
+            let Some(end_rel) = lower[start..].find('>') else {
+                break;
+            };
             let end = start + end_rel;
             let tag = &lower[start + 1..end];
             let raw_tag = &html[start + 1..end];
@@ -366,7 +396,7 @@ impl Bookmarks {
                     Some(name) => {
                         let parent_id = stack.last().expect("non-empty").clone();
                         self.add(&parent_id, &name, None, None)?
-                    },
+                    }
                     // The outermost <DL> belongs to the import folder itself.
                     None if stack.len() == 1 && count == 0 => root.clone(),
                     None => stack.last().expect("non-empty").clone(),
@@ -408,7 +438,11 @@ impl Bookmarks {
     fn export_folder(&self, id: &str, depth: usize, out: &mut String) {
         let indent = "    ".repeat(depth);
         let Some(node) = self.get(id) else { return };
-        let extra = if id == ROOT_BAR { " PERSONAL_TOOLBAR_FOLDER=\"true\"" } else { "" };
+        let extra = if id == ROOT_BAR {
+            " PERSONAL_TOOLBAR_FOLDER=\"true\""
+        } else {
+            ""
+        };
         out.push_str(&format!(
             "{indent}<DT><H3 ADD_DATE=\"{}\"{extra}>{}</H3>\n{indent}<DL><p>\n",
             node.added / 1000,
@@ -439,7 +473,7 @@ fn decode_text(s: &str) -> String {
                 '<' => in_tag = true,
                 '>' => in_tag = false,
                 _ if !in_tag => out.push(c),
-                _ => {},
+                _ => {}
             }
         }
         out
@@ -496,9 +530,15 @@ mod tests {
     #[test]
     fn add_rejects_bad_urls_and_non_folders() {
         let mut b = empty();
-        assert_eq!(b.add(ROOT_BAR, "x", Some("javascript:alert(1)"), None), Err(BookmarkError::BadUrl));
+        assert_eq!(
+            b.add(ROOT_BAR, "x", Some("javascript:alert(1)"), None),
+            Err(BookmarkError::BadUrl)
+        );
         let id = b.add(ROOT_BAR, "x", Some("https://x.test/"), None).unwrap();
-        assert_eq!(b.add(&id, "y", Some("https://y.test/"), None), Err(BookmarkError::NotAFolder));
+        assert_eq!(
+            b.add(&id, "y", Some("https://y.test/"), None),
+            Err(BookmarkError::NotAFolder)
+        );
     }
 
     #[test]
@@ -506,8 +546,14 @@ mod tests {
         let mut b = empty();
         let a = b.add(ROOT_BAR, "a", Some("https://a.test/"), None).unwrap();
         let c = b.add(ROOT_BAR, "c", Some("https://c.test/"), None).unwrap();
-        let bb = b.add(ROOT_BAR, "b", Some("https://b.test/"), Some(1)).unwrap();
-        let titles: Vec<_> = b.children(ROOT_BAR).iter().map(|n| n.title.clone()).collect();
+        let bb = b
+            .add(ROOT_BAR, "b", Some("https://b.test/"), Some(1))
+            .unwrap();
+        let titles: Vec<_> = b
+            .children(ROOT_BAR)
+            .iter()
+            .map(|n| n.title.clone())
+            .collect();
         assert_eq!(titles, ["a", "b", "c"]);
         b.move_to(&c, ROOT_BAR, Some(0)).unwrap();
         let ids: Vec<_> = b.children(ROOT_BAR).iter().map(|n| n.id.clone()).collect();
@@ -515,7 +561,10 @@ mod tests {
         let folder = b.add(ROOT_OTHER, "f", None, None).unwrap();
         let sub = b.add(&folder, "sub", None, None).unwrap();
         assert_eq!(b.move_to(&folder, &sub, None), Err(BookmarkError::Cycle));
-        assert_eq!(b.move_to(ROOT_BAR, ROOT_OTHER, None), Err(BookmarkError::Root));
+        assert_eq!(
+            b.move_to(ROOT_BAR, ROOT_OTHER, None),
+            Err(BookmarkError::Root)
+        );
     }
 
     #[test]
@@ -563,14 +612,21 @@ mod tests {
 
         let exported = b.export_netscape();
         let mut again = empty();
-        assert_eq!(again.import_netscape(&exported, ROOT_OTHER, "Again").unwrap(), 3);
+        assert_eq!(
+            again
+                .import_netscape(&exported, ROOT_OTHER, "Again")
+                .unwrap(),
+            3
+        );
         assert!(exported.contains("Servo &amp; friends"));
     }
 
     #[test]
     fn search_skips_trash() {
         let mut b = empty();
-        let a = b.add(ROOT_BAR, "Rust lang", Some("https://rust-lang.org/"), None).unwrap();
+        let a = b
+            .add(ROOT_BAR, "Rust lang", Some("https://rust-lang.org/"), None)
+            .unwrap();
         assert_eq!(b.search("rust", 10).len(), 1);
         b.delete(&a).unwrap();
         assert!(b.search("rust", 10).is_empty());

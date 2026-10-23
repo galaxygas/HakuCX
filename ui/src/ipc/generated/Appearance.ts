@@ -25,7 +25,11 @@ wallpaper: string,
 /**
  * Path inside the profile's `wallpapers/` directory when `wallpaper == "custom"`.
  */
-customWallpaper: string | null, animatedWallpaper: boolean, dailyWallpapers: boolean, interfaceMode: InterfaceMode, opacity: number, blur: number, elementsBackground: number, vignette: number, focusMode: boolean, windowDecoration: WindowDecoration, gxMessengerIcons: boolean, colorizeIcons: boolean, showBookmarksBar: boolean, splitScreen: boolean, splitScreenDrag: boolean, reduceAnimations: boolean, fontSize: FontSize, fontStandard: string, fontSerif: string, fontSans: string, fontFixed: string, fontMinimum: number, 
+customWallpaper: string | null, animatedWallpaper: boolean, dailyWallpapers: boolean, interfaceMode: InterfaceMode, opacity: number, blur: number, elementsBackground: number, vignette: number, focusMode: boolean, windowDecoration: WindowDecoration, 
+/**
+ * Use the operating system's title bar instead of the GX-style frameless window.
+ */
+nativeTitleBar: boolean, gxMessengerIcons: boolean, colorizeIcons: boolean, showBookmarksBar: boolean, splitScreen: boolean, splitScreenDrag: boolean, reduceAnimations: boolean, fontSize: FontSize, fontStandard: string, fontSerif: string, fontSans: string, fontFixed: string, fontMinimum: number, 
 /**
  * Default page zoom, percent.
  */

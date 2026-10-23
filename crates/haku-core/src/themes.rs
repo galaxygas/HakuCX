@@ -237,7 +237,7 @@ pub const THEMES: &[Theme] = &[
         name: "White Wolf",
         family: ThemeFamily::Gx,
         dark: v(0xcccccc, 0xc2c2c2, 0x141414),
-        light: light(0x3d3d3d, 0xc5c5c5, 0xf5f5f5),
+        light: light(0x292929, 0xc5c5c5, 0xf5f5f5),
         wallpaper: "gx-ribbons",
     },
     // ---- HakuCX originals ----
@@ -403,8 +403,11 @@ pub fn palette_for_settings(
             ColorMode::Light => false,
             ColorMode::Auto => system_dark,
         };
-        let (primary, secondary) =
-            if dark { (&u.dark_primary, &u.dark_secondary) } else { (&u.light_primary, &u.light_secondary) };
+        let (primary, secondary) = if dark {
+            (&u.dark_primary, &u.dark_secondary)
+        } else {
+            (&u.light_primary, &u.light_secondary)
+        };
         let base = default_theme();
         return palette_for(
             base,

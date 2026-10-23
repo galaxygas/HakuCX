@@ -24,13 +24,23 @@ fn main() {
 fn build_ui() {
     let manifest = PathBuf::from(env::var("CARGO_MANIFEST_DIR").expect("CARGO_MANIFEST_DIR"));
     let ui = manifest.join("../../ui");
-    for watched in ["src", "public", "index.html", "package.json", "pnpm-lock.yaml", "vite.config.ts"] {
+    for watched in [
+        "src",
+        "public",
+        "index.html",
+        "package.json",
+        "pnpm-lock.yaml",
+        "vite.config.ts",
+    ] {
         println!("cargo::rerun-if-changed={}", ui.join(watched).display());
     }
     println!("cargo::rerun-if-env-changed=HAKU_SKIP_UI_BUILD");
     let dist = ui.join("dist").join("index.html");
     if env::var_os("HAKU_SKIP_UI_BUILD").is_some() {
-        assert!(dist.is_file(), "HAKU_SKIP_UI_BUILD is set but ui/dist is missing");
+        assert!(
+            dist.is_file(),
+            "HAKU_SKIP_UI_BUILD is set but ui/dist is missing"
+        );
         return;
     }
     let pnpm = |args: &[&str]| {
@@ -44,7 +54,7 @@ fn build_ui() {
         };
         cmd.args(args).current_dir(&ui);
         match cmd.status() {
-            Ok(status) if status.success() => {},
+            Ok(status) if status.success() => {}
             Ok(status) => panic!("`pnpm {}` failed with {status}", args.join(" ")),
             Err(error) => panic!(
                 "could not run pnpm ({error}). Install Node.js and pnpm, or set HAKU_SKIP_UI_BUILD=1 with a prebuilt ui/dist"

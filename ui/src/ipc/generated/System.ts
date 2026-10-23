@@ -8,7 +8,11 @@ export type System = { hardwareAcceleration: boolean, proxyMode: ProxyMode,
  */
 proxyUrl: string, proxyBypass: string, webrtcPolicy: WebRtcPolicy, 
 /**
- * Multi-process mode (one content process per site group). Required for GX Control's
- * kernel limits; off falls back to soft limits.
+ * Servo multi-process mode (content processes separate from the UI). Needed for the GX
+ * Control RAM hard limit. Experimental in Servo, so off by default.
  */
-multiprocess: boolean, devtoolsServer: boolean, devtoolsPort: number, };
+multiprocess: boolean, 
+/**
+ * Keep the HTTP cache on disk between sessions.
+ */
+diskCache: boolean, webgpu: boolean, textAntialiasing: boolean, devtoolsServer: boolean, devtoolsPort: number, };

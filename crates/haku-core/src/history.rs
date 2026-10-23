@@ -91,7 +91,13 @@ impl History {
             .unwrap_or(false)
     }
 
-    pub fn record_visit(&self, url: &str, title: &str, transition: Transition, at: i64) -> rusqlite::Result<()> {
+    pub fn record_visit(
+        &self,
+        url: &str,
+        title: &str,
+        transition: Transition,
+        at: i64,
+    ) -> rusqlite::Result<()> {
         if !Self::recordable(url) {
             return Ok(());
         }
@@ -106,7 +112,9 @@ impl History {
                last_visit = MAX(urls.last_visit, ?5)",
             params![url, title, counts, typed, at],
         )?;
-        let url_id: i64 = self.conn.query_row("SELECT id FROM urls WHERE url = ?1", [url], |r| r.get(0))?;
+        let url_id: i64 =
+            self.conn
+                .query_row("SELECT id FROM urls WHERE url = ?1", [url], |r| r.get(0))?;
         self.conn.execute(
             "INSERT INTO visits (url_id, visited_at, transition) VALUES (?1, ?2, ?3)",
             params![url_id, at, transition as i64],
@@ -118,7 +126,10 @@ impl History {
         if title.is_empty() {
             return Ok(());
         }
-        self.conn.execute("UPDATE urls SET title = ?2 WHERE url = ?1", params![url, title])?;
+        self.conn.execute(
+            "UPDATE urls SET title = ?2 WHERE url = ?1",
+            params![url, title],
+        )?;
         Ok(())
     }
 
@@ -139,7 +150,13 @@ impl History {
              ORDER BY v.visited_at DESC LIMIT ?4 OFFSET ?5",
         )?;
         let rows = stmt.query_map(
-            params![like, from.unwrap_or(i64::MIN), to.unwrap_or(i64::MAX), limit as i64, offset as i64],
+            params![
+                like,
+                from.unwrap_or(i64::MIN),
+                to.unwrap_or(i64::MAX),
+                limit as i64,
+                offset as i64
+            ],
             |r| {
                 Ok(Visit {
                     id: r.get(0)?,
@@ -183,7 +200,11 @@ impl History {
                 })
             })?
             .collect::<rusqlite::Result<_>>()?;
-        let first = text.split_whitespace().next().unwrap_or_default().to_lowercase();
+        let first = text
+            .split_whitespace()
+            .next()
+            .unwrap_or_default()
+            .to_lowercase();
         rows.sort_by(|a, b| {
             frecency(b, now, &first)
                 .partial_cmp(&frecency(a, now, &first))
@@ -214,9 +235,10 @@ impl History {
         Ok(rows
             .into_iter()
             .filter(|r| {
-                let host = url::Url::parse(&r.url)
-                    .ok()
-                    .and_then(|u| u.host_str().map(|h| h.trim_start_matches("www.").to_owned()));
+                let host = url::Url::parse(&r.url).ok().and_then(|u| {
+                    u.host_str()
+                        .map(|h| h.trim_start_matches("www.").to_owned())
+                });
                 host.is_some_and(|h| seen.insert(h))
             })
             .take(limit)
@@ -226,9 +248,12 @@ impl History {
     pub fn delete_visit(&self, id: i64) -> rusqlite::Result<()> {
         let url_id: Option<i64> = self
             .conn
-            .query_row("SELECT url_id FROM visits WHERE id = ?1", [id], |r| r.get(0))
+            .query_row("SELECT url_id FROM visits WHERE id = ?1", [id], |r| {
+                r.get(0)
+            })
             .optional()?;
-        self.conn.execute("DELETE FROM visits WHERE id = ?1", [id])?;
+        self.conn
+            .execute("DELETE FROM visits WHERE id = ?1", [id])?;
         if let Some(url_id) = url_id {
             self.drop_unvisited(Some(url_id))?;
         }
@@ -236,26 +261,30 @@ impl History {
     }
 
     pub fn delete_url(&self, url: &str) -> rusqlite::Result<()> {
-        self.conn.execute("DELETE FROM urls WHERE url = ?1", [url])?;
+        self.conn
+            .execute("DELETE FROM urls WHERE url = ?1", [url])?;
         Ok(())
     }
 
     /// Delete visits in [from, to) and URLs left with no visits. Returns visits removed.
     pub fn delete_range(&self, from: i64, to: i64) -> rusqlite::Result<usize> {
-        let n = self
-            .conn
-            .execute("DELETE FROM visits WHERE visited_at >= ?1 AND visited_at < ?2", params![from, to])?;
+        let n = self.conn.execute(
+            "DELETE FROM visits WHERE visited_at >= ?1 AND visited_at < ?2",
+            params![from, to],
+        )?;
         self.drop_unvisited(None)?;
         self.recount()?;
         Ok(n)
     }
 
     pub fn clear(&self) -> rusqlite::Result<()> {
-        self.conn.execute_batch("DELETE FROM visits; DELETE FROM urls;")
+        self.conn
+            .execute_batch("DELETE FROM visits; DELETE FROM urls;")
     }
 
     pub fn visit_count(&self) -> rusqlite::Result<i64> {
-        self.conn.query_row("SELECT COUNT(*) FROM visits", [], |r| r.get(0))
+        self.conn
+            .query_row("SELECT COUNT(*) FROM visits", [], |r| r.get(0))
     }
 
     fn drop_unvisited(&self, url_id: Option<i64>) -> rusqlite::Result<()> {
@@ -283,7 +312,9 @@ impl History {
 }
 
 fn escape_like(s: &str) -> String {
-    s.replace('\\', "\\\\").replace('%', "\\%").replace('_', "\\_")
+    s.replace('\\', "\\\\")
+        .replace('%', "\\%")
+        .replace('_', "\\_")
 }
 
 /// Frecency: typed visits count triple, recency decays with a 14-day half-life, and URLs whose
@@ -315,10 +346,14 @@ mod tests {
     #[test]
     fn records_and_queries() {
         let h = History::in_memory().unwrap();
-        h.record_visit("https://servo.org/", "Servo", Transition::Typed, 1_000).unwrap();
-        h.record_visit("https://servo.org/", "", Transition::Link, 2_000).unwrap();
-        h.record_visit("haku://start/", "Start", Transition::Typed, 3_000).unwrap();
-        h.record_visit("https://example.com/", "Example", Transition::Link, 4_000).unwrap();
+        h.record_visit("https://servo.org/", "Servo", Transition::Typed, 1_000)
+            .unwrap();
+        h.record_visit("https://servo.org/", "", Transition::Link, 2_000)
+            .unwrap();
+        h.record_visit("haku://start/", "Start", Transition::Typed, 3_000)
+            .unwrap();
+        h.record_visit("https://example.com/", "Example", Transition::Link, 4_000)
+            .unwrap();
         let all = h.query("", None, None, 10, 0).unwrap();
         assert_eq!(all.len(), 3);
         assert_eq!(all[0].url, "https://example.com/");
@@ -332,8 +367,10 @@ mod tests {
     #[test]
     fn like_wildcards_are_literal() {
         let h = History::in_memory().unwrap();
-        h.record_visit("https://a.test/100%25", "a_b", Transition::Link, 1).unwrap();
-        h.record_visit("https://b.test/", "ab", Transition::Link, 2).unwrap();
+        h.record_visit("https://a.test/100%25", "a_b", Transition::Link, 1)
+            .unwrap();
+        h.record_visit("https://b.test/", "ab", Transition::Link, 2)
+            .unwrap();
         assert_eq!(h.query("a_b", None, None, 10, 0).unwrap().len(), 1);
         assert_eq!(h.query("%", None, None, 10, 0).unwrap().len(), 1);
     }
@@ -343,9 +380,21 @@ mod tests {
         let h = History::in_memory().unwrap();
         let now = 100 * DAY;
         for i in 0..5 {
-            h.record_visit("https://blog.example/git-tips", "Git tips", Transition::Link, now - i).unwrap();
+            h.record_visit(
+                "https://blog.example/git-tips",
+                "Git tips",
+                Transition::Link,
+                now - i,
+            )
+            .unwrap();
         }
-        h.record_visit("https://github.com/", "GitHub", Transition::Typed, now - DAY).unwrap();
+        h.record_visit(
+            "https://github.com/",
+            "GitHub",
+            Transition::Typed,
+            now - DAY,
+        )
+        .unwrap();
         let s = h.suggest("git", 5, now).unwrap();
         assert_eq!(s[0].url, "https://github.com/");
         assert_eq!(s.len(), 2);
@@ -355,9 +404,12 @@ mod tests {
     #[test]
     fn delete_range_recounts_and_drops_orphans() {
         let h = History::in_memory().unwrap();
-        h.record_visit("https://a.test/", "A", Transition::Link, 10).unwrap();
-        h.record_visit("https://a.test/", "A", Transition::Link, 20).unwrap();
-        h.record_visit("https://b.test/", "B", Transition::Link, 30).unwrap();
+        h.record_visit("https://a.test/", "A", Transition::Link, 10)
+            .unwrap();
+        h.record_visit("https://a.test/", "A", Transition::Link, 20)
+            .unwrap();
+        h.record_visit("https://b.test/", "B", Transition::Link, 30)
+            .unwrap();
         assert_eq!(h.delete_range(15, 40).unwrap(), 2);
         let top = h.top_sites(10).unwrap();
         assert_eq!(top.len(), 1);
@@ -368,11 +420,13 @@ mod tests {
     #[test]
     fn delete_single_visit_and_clear() {
         let h = History::in_memory().unwrap();
-        h.record_visit("https://a.test/", "A", Transition::Link, 10).unwrap();
+        h.record_visit("https://a.test/", "A", Transition::Link, 10)
+            .unwrap();
         let v = h.query("", None, None, 1, 0).unwrap()[0].id;
         h.delete_visit(v).unwrap();
         assert!(h.top_sites(5).unwrap().is_empty());
-        h.record_visit("https://a.test/", "A", Transition::Link, 10).unwrap();
+        h.record_visit("https://a.test/", "A", Transition::Link, 10)
+            .unwrap();
         h.clear().unwrap();
         assert_eq!(h.visit_count().unwrap(), 0);
     }
@@ -380,9 +434,12 @@ mod tests {
     #[test]
     fn top_sites_one_per_host() {
         let h = History::in_memory().unwrap();
-        h.record_visit("https://www.a.test/x", "A1", Transition::Link, 1).unwrap();
-        h.record_visit("https://a.test/y", "A2", Transition::Link, 2).unwrap();
-        h.record_visit("https://b.test/", "B", Transition::Link, 3).unwrap();
+        h.record_visit("https://www.a.test/x", "A1", Transition::Link, 1)
+            .unwrap();
+        h.record_visit("https://a.test/y", "A2", Transition::Link, 2)
+            .unwrap();
+        h.record_visit("https://b.test/", "B", Transition::Link, 3)
+            .unwrap();
         assert_eq!(h.top_sites(10).unwrap().len(), 2);
     }
 
@@ -392,7 +449,8 @@ mod tests {
         let path = dir.path().join("history.sqlite");
         {
             let h = History::open(&path).unwrap();
-            h.record_visit("https://a.test/", "A", Transition::Link, 1).unwrap();
+            h.record_visit("https://a.test/", "A", Transition::Link, 1)
+                .unwrap();
         }
         let h = History::open(&path).unwrap();
         assert_eq!(h.visit_count().unwrap(), 1);

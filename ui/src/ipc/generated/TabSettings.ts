@@ -5,4 +5,4 @@ export type TabSettings = { autoIslands: boolean, traces: TraceThreshold, snooze
 /**
  * Minutes of inactivity before a background tab is snoozed.
  */
-snoozeAfterMinutes: number, snoozeOnMemoryPressure: boolean, addressSuggestions: boolean, suggestionsBeforeTyping: boolean, citySuggestions: boolean, tabPreviews: boolean, enhancedTooltips: boolean, tooltipSameDomain: boolean, searchInTabs: boolean, showAccountButton: boolean, mruCycling: boolean, showFullUrl: boolean, scrollTopOnActiveClick: boolean, closeExternalAppTabs: boolean, warnCloseWindow: boolean, warnQuit: boolean, tabKeyHighlightsLinks: boolean, verticalTabs: boolean, tabEmojis: boolean, };
+snoozeAfterMinutes: number, snoozeOnMemoryPressure: boolean, addressSuggestions: boolean, suggestionsBeforeTyping: boolean, tabPreviews: boolean, enhancedTooltips: boolean, tooltipSameDomain: boolean, searchInTabs: boolean, showAccountButton: boolean, mruCycling: boolean, showFullUrl: boolean, scrollTopOnActiveClick: boolean, closeExternalAppTabs: boolean, warnCloseWindow: boolean, warnQuit: boolean, verticalTabs: boolean, tabEmojis: boolean, };

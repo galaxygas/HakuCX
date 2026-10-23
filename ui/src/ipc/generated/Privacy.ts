@@ -11,7 +11,11 @@ adExceptions: Array<string>, trackerExceptions: Array<string>, filterLists: Arra
 /**
  * User-written filter rules (ABP / uBO syntax).
  */
-customFilters: string, cosmeticFiltering: boolean, blockPopups: boolean, popupAllowlist: Array<string>, doNotTrack: boolean, globalPrivacyControl: boolean, thirdPartyCookies: ThirdPartyCookies, httpsOnly: boolean, maliciousSiteProtection: boolean, pasteProtectHijack: boolean, pasteProtectInjection: boolean, pasteProtectAllowlist: Array<string>, clearOnExit: ClearOnExit, showBlockedStats: boolean, 
+customFilters: string, cosmeticFiltering: boolean, blockPopups: boolean, popupAllowlist: Array<string>, doNotTrack: boolean, globalPrivacyControl: boolean, thirdPartyCookies: ThirdPartyCookies, httpsOnly: boolean, 
+/**
+ * Engine JIT compilers. Off trades speed for a smaller attack surface.
+ */
+javascriptOptimization: boolean, maliciousSiteProtection: boolean, pasteProtectHijack: boolean, pasteProtectInjection: boolean, pasteProtectAllowlist: Array<string>, clearOnExit: ClearOnExit, showBlockedStats: boolean, 
 /**
  * HakuCX never phones home. These stay false and exist so the UI can say so.
  */

@@ -136,7 +136,11 @@ impl ProfilePaths {
             .chars()
             .filter(|c| c.is_ascii_alphanumeric() || *c == '-' || *c == '_')
             .collect();
-        let safe = if safe.is_empty() { "default".to_owned() } else { safe };
+        let safe = if safe.is_empty() {
+            "default".to_owned()
+        } else {
+            safe
+        };
         let paths = Self {
             root: data_root.join("Profiles").join(safe),
         };
@@ -196,7 +200,10 @@ impl ProfilePaths {
 
 /// Write JSON to a temporary file, flush it to disk, then rename it over the target, so a
 /// crash mid-write can never leave a truncated file behind.
-pub fn write_json_atomic<T: Serialize + ?Sized>(path: &Path, value: &T) -> Result<(), StorageError> {
+pub fn write_json_atomic<T: Serialize + ?Sized>(
+    path: &Path,
+    value: &T,
+) -> Result<(), StorageError> {
     let bytes = serde_json::to_vec_pretty(value).map_err(|source| StorageError::Encode {
         path: path.to_owned(),
         source,
@@ -231,7 +238,7 @@ pub fn read_json_or_default<T: DeserializeOwned + Default>(path: &Path) -> T {
         Err(error) => {
             log::error!("could not read {}: {error}", path.display());
             return T::default();
-        },
+        }
     };
     match serde_json::from_str(&text) {
         Ok(value) => value,
@@ -244,7 +251,7 @@ pub fn read_json_or_default<T: DeserializeOwned + Default>(path: &Path) -> T {
             );
             let _ = fs::rename(path, &backup);
             T::default()
-        },
+        }
     }
 }
 

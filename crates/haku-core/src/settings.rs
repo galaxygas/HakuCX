@@ -241,6 +241,8 @@ pub struct Appearance {
     pub vignette: f32,
     pub focus_mode: bool,
     pub window_decoration: WindowDecoration,
+    /// Use the operating system's title bar instead of the GX-style frameless window.
+    pub native_title_bar: bool,
     pub gx_messenger_icons: bool,
     pub colorize_icons: bool,
     pub show_bookmarks_bar: bool,
@@ -284,6 +286,7 @@ impl Default for Appearance {
             vignette: 0.55,
             focus_mode: false,
             window_decoration: WindowDecoration::Outside,
+            native_title_bar: false,
             gx_messenger_icons: false,
             colorize_icons: true,
             show_bookmarks_bar: true,
@@ -333,7 +336,6 @@ pub struct TabSettings {
     pub snooze_on_memory_pressure: bool,
     pub address_suggestions: bool,
     pub suggestions_before_typing: bool,
-    pub city_suggestions: bool,
     pub tab_previews: bool,
     pub enhanced_tooltips: bool,
     pub tooltip_same_domain: bool,
@@ -345,7 +347,6 @@ pub struct TabSettings {
     pub close_external_app_tabs: bool,
     pub warn_close_window: bool,
     pub warn_quit: bool,
-    pub tab_key_highlights_links: bool,
     pub vertical_tabs: bool,
     pub tab_emojis: bool,
 }
@@ -360,7 +361,6 @@ impl Default for TabSettings {
             snooze_on_memory_pressure: true,
             address_suggestions: true,
             suggestions_before_typing: true,
-            city_suggestions: false,
             tab_previews: true,
             enhanced_tooltips: true,
             tooltip_same_domain: true,
@@ -372,7 +372,6 @@ impl Default for TabSettings {
             close_external_app_tabs: true,
             warn_close_window: true,
             warn_quit: true,
-            tab_key_highlights_links: false,
             vertical_tabs: false,
             tab_emojis: true,
         }
@@ -1091,6 +1090,8 @@ pub struct Privacy {
     pub global_privacy_control: bool,
     pub third_party_cookies: ThirdPartyCookies,
     pub https_only: bool,
+    /// Engine JIT compilers. Off trades speed for a smaller attack surface.
+    pub javascript_optimization: bool,
     pub malicious_site_protection: bool,
     pub paste_protect_hijack: bool,
     pub paste_protect_injection: bool,
@@ -1119,6 +1120,7 @@ impl Default for Privacy {
             global_privacy_control: true,
             third_party_cookies: ThirdPartyCookies::BlockInPrivate,
             https_only: false,
+            javascript_optimization: true,
             malicious_site_protection: true,
             paste_protect_hijack: true,
             paste_protect_injection: true,
@@ -1534,9 +1536,13 @@ pub struct System {
     pub proxy_url: String,
     pub proxy_bypass: String,
     pub webrtc_policy: WebRtcPolicy,
-    /// Multi-process mode (one content process per site group). Required for GX Control's
-    /// kernel limits; off falls back to soft limits.
+    /// Servo multi-process mode (content processes separate from the UI). Needed for the GX
+    /// Control RAM hard limit. Experimental in Servo, so off by default.
     pub multiprocess: bool,
+    /// Keep the HTTP cache on disk between sessions.
+    pub disk_cache: bool,
+    pub webgpu: bool,
+    pub text_antialiasing: bool,
     pub devtools_server: bool,
     pub devtools_port: u16,
 }
@@ -1549,7 +1555,10 @@ impl Default for System {
             proxy_url: String::new(),
             proxy_bypass: "localhost,127.0.0.1".into(),
             webrtc_policy: WebRtcPolicy::Default,
-            multiprocess: true,
+            multiprocess: false,
+            disk_cache: true,
+            webgpu: false,
+            text_antialiasing: true,
             devtools_server: false,
             devtools_port: 7000,
         }

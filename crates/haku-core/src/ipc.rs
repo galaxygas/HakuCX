@@ -15,7 +15,7 @@ use crate::bookmarks::Bookmarks;
 use crate::history::{UrlStat, Visit};
 use crate::records::{DownloadRecord, Pinboards, SiteMods};
 use crate::session::{IslandId, Session, TabId, WorkspaceId};
-use crate::settings::Settings;
+use crate::settings::{Cleaner, Settings};
 use crate::storage::ProfileInfo;
 use crate::themes::{Palette, ThemeInfo, UserTheme};
 
@@ -101,10 +101,15 @@ pub enum PageAction {
     SaveImageAs,
     SearchSelection,
     CopySelection,
+    ScrollToTop,
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize, TS)]
-#[serde(tag = "type", rename_all = "kebab-case", rename_all_fields = "camelCase")]
+#[serde(
+    tag = "type",
+    rename_all = "kebab-case",
+    rename_all_fields = "camelCase"
+)]
 #[ts(export)]
 pub enum Command {
     /// The UI finished loading and wants the initial state.
@@ -113,11 +118,21 @@ pub enum Command {
     Layout {
         page: Rect,
         split: Option<Rect>,
+        /// Where the open web panel (sidebar messenger etc.) is drawn.
+        panel: Option<Rect>,
+        /// Something (a floating panel, menu, dialog) covers the page: page input goes to the UI.
         overlay: bool,
+        /// A menu, popup or dialog is open: all input, including web panels, goes to the UI.
+        modal: bool,
         /// Areas the compositor blurs before drawing the UI (glass effects over pages).
         blur: Vec<Rect>,
+        /// Interactive UI drawn on top of a page (find bar, split divider): input there goes
+        /// to the UI even when nothing else covers the page.
+        regions: Vec<Rect>,
     },
-    Window { action: WindowAction },
+    Window {
+        action: WindowAction,
+    },
 
     // ---- navigation and tabs
     Navigate {
@@ -125,35 +140,103 @@ pub enum Command {
         input: String,
         disposition: Disposition,
     },
-    Back { tab: Option<TabId> },
-    Forward { tab: Option<TabId> },
-    Reload { tab: Option<TabId>, bypass_cache: bool },
-    Stop { tab: Option<TabId> },
+    Back {
+        tab: Option<TabId>,
+    },
+    Forward {
+        tab: Option<TabId>,
+    },
+    Reload {
+        tab: Option<TabId>,
+        bypass_cache: bool,
+    },
+    Stop {
+        tab: Option<TabId>,
+    },
     NewTab {
         url: Option<String>,
         background: bool,
         relative_to: Option<TabId>,
     },
-    CloseTab { tab: TabId },
-    CloseOthers { tab: TabId },
-    CloseToRight { tab: TabId },
+    CloseTab {
+        tab: TabId,
+    },
+    CloseOthers {
+        tab: TabId,
+    },
+    CloseToRight {
+        tab: TabId,
+    },
     ReopenClosed,
-    ActivateTab { tab: TabId },
-    MoveTab { tab: TabId, index: usize },
-    MoveTabToWorkspace { tab: TabId, workspace: WorkspaceId },
-    PinTab { tab: TabId, pinned: bool },
-    MuteTab { tab: TabId, muted: bool },
-    SetTabEmoji { tab: TabId, emoji: Option<String> },
-    DuplicateTab { tab: TabId },
-    CycleTab { forward: bool },
-    SelectNthTab { n: usize },
-    SetZoom { tab: Option<TabId>, zoom: f32 },
-    ZoomStep { delta: i32 },
+    ActivateTab {
+        tab: TabId,
+    },
+    MoveTab {
+        tab: TabId,
+        index: usize,
+    },
+    MoveTabToWorkspace {
+        tab: TabId,
+        workspace: WorkspaceId,
+    },
+    PinTab {
+        tab: TabId,
+        pinned: bool,
+    },
+    MuteTab {
+        tab: TabId,
+        muted: bool,
+    },
+    SetTabEmoji {
+        tab: TabId,
+        emoji: Option<String>,
+    },
+    DuplicateTab {
+        tab: TabId,
+    },
+    CycleTab {
+        forward: bool,
+    },
+    SelectNthTab {
+        n: usize,
+    },
+    SetZoom {
+        tab: Option<TabId>,
+        zoom: f32,
+    },
+    ZoomStep {
+        delta: i32,
+    },
+
+    // ---- sidebar web panels
+    /// Show (creating if needed) the web panel `id` loading `url`.
+    OpenWebPanel {
+        id: String,
+        url: String,
+    },
+    /// Hide the visible web panel (it keeps running in the background).
+    HideWebPanel,
+    /// Close a web panel's page entirely.
+    CloseWebPanel {
+        id: String,
+    },
+    WebPanelNavigate {
+        id: String,
+        action: String,
+    },
 
     // ---- islands, workspaces, split screen
-    CreateIsland { tabs: Vec<TabId>, name: Option<String> },
-    AddToIsland { tab: TabId, island: IslandId },
-    RemoveFromIsland { tab: TabId },
+    CreateIsland {
+        tabs: Vec<TabId>,
+        name: Option<String>,
+    },
+    AddToIsland {
+        tab: TabId,
+        island: IslandId,
+    },
+    RemoveFromIsland {
+        tab: TabId,
+    },
     /// `None` leaves a field unchanged; an empty `emoji`/`color` clears it.
     UpdateIsland {
         island: IslandId,
@@ -162,21 +245,48 @@ pub enum Command {
         color: Option<String>,
         collapsed: Option<bool>,
     },
-    UngroupIsland { island: IslandId },
-    CloseIsland { island: IslandId },
-    AddWorkspace { name: String, icon: String },
-    UpdateWorkspace { workspace: WorkspaceId, name: String, icon: Option<String> },
-    RemoveWorkspace { workspace: WorkspaceId },
-    SwitchWorkspace { workspace: WorkspaceId },
-    MoveWorkspace { workspace: WorkspaceId, index: usize },
-    SetSplit { left: TabId, right: TabId },
+    UngroupIsland {
+        island: IslandId,
+    },
+    CloseIsland {
+        island: IslandId,
+    },
+    AddWorkspace {
+        name: String,
+        icon: String,
+    },
+    UpdateWorkspace {
+        workspace: WorkspaceId,
+        name: String,
+        icon: Option<String>,
+    },
+    RemoveWorkspace {
+        workspace: WorkspaceId,
+    },
+    SwitchWorkspace {
+        workspace: WorkspaceId,
+    },
+    MoveWorkspace {
+        workspace: WorkspaceId,
+        index: usize,
+    },
+    SetSplit {
+        left: TabId,
+        right: TabId,
+    },
     ClearSplit,
 
     // ---- settings and themes
-    PatchSettings { patch: serde_json::Value },
+    PatchSettings {
+        patch: serde_json::Value,
+    },
     ResetSettings,
-    SaveUserTheme { theme: UserTheme },
-    DeleteUserTheme { id: String },
+    SaveUserTheme {
+        theme: UserTheme,
+    },
+    DeleteUserTheme {
+        id: String,
+    },
     PickWallpaper,
 
     // ---- bookmarks
@@ -192,9 +302,17 @@ pub enum Command {
         url: Option<String>,
         color: Option<String>,
     },
-    MoveBookmark { id: String, parent: String, index: Option<usize> },
-    DeleteBookmark { id: String },
-    RestoreBookmark { id: String },
+    MoveBookmark {
+        id: String,
+        parent: String,
+        index: Option<usize>,
+    },
+    DeleteBookmark {
+        id: String,
+    },
+    RestoreBookmark {
+        id: String,
+    },
     EmptyTrash,
     /// Star button: bookmark the active page in the bookmarks bar, or remove it if present.
     ToggleBookmark,
@@ -210,27 +328,69 @@ pub enum Command {
         limit: u32,
         offset: u32,
     },
-    DeleteHistoryVisits { ids: Vec<i64> },
-    DeleteHistoryRange { from: i64, to: i64 },
-    Suggest { request: u32, text: String },
+    DeleteHistoryVisits {
+        ids: Vec<i64>,
+    },
+    DeleteHistoryRange {
+        from: i64,
+        to: i64,
+    },
+    Suggest {
+        request: u32,
+        text: String,
+    },
 
     // ---- downloads
-    Download { id: String, action: DownloadAction },
+    Download {
+        id: String,
+        action: DownloadAction,
+    },
     ClearDownloads,
 
     // ---- find in page
-    Find { text: String, forward: bool, match_case: bool },
+    Find {
+        text: String,
+        forward: bool,
+        match_case: bool,
+    },
     FindStop,
 
     // ---- page actions and engine prompts
-    Page { action: PageAction, tab: Option<TabId>, data: Option<String> },
-    DialogResponse { id: u32, confirmed: bool, value: Option<String> },
-    SelectResponse { id: u32, selected: Vec<usize> },
-    ColorResponse { id: u32, color: Option<String> },
-    ContextMenuClosed { id: u32 },
-    PermissionResponse { id: u32, allow: bool, remember: bool },
-    AuthResponse { id: u32, username: Option<String>, password: Option<String> },
-    FilePickerResponse { id: u32, paths: Vec<String> },
+    Page {
+        action: PageAction,
+        tab: Option<TabId>,
+        data: Option<String>,
+    },
+    DialogResponse {
+        id: u32,
+        confirmed: bool,
+        value: Option<String>,
+    },
+    SelectResponse {
+        id: u32,
+        selected: Vec<usize>,
+    },
+    ColorResponse {
+        id: u32,
+        color: Option<String>,
+    },
+    ContextMenuClosed {
+        id: u32,
+    },
+    PermissionResponse {
+        id: u32,
+        allow: bool,
+        remember: bool,
+    },
+    AuthResponse {
+        id: u32,
+        username: Option<String>,
+        password: Option<String>,
+    },
+    FilePickerResponse {
+        id: u32,
+        paths: Vec<String>,
+    },
 
     // ---- data
     ClearBrowsingData {
@@ -241,14 +401,102 @@ pub enum Command {
         downloads: bool,
         site_settings: bool,
     },
-    SavePinboards { pinboards: Pinboards },
-    SaveSiteMods { mods: SiteMods },
+    SavePinboards {
+        pinboards: Pinboards,
+    },
+    SaveSiteMods {
+        mods: SiteMods,
+    },
+
+    // ---- tools
+    /// Sizes and counts for the GX Cleaner panel.
+    CleanerStats,
+    RunCleaner {
+        cleaner: Cleaner,
+    },
+    /// Fetch a public http(s) resource (feeds, deals, weather) without cookies; text up to 5 MB.
+    HttpGet {
+        request: u32,
+        url: String,
+    },
+    /// Visible text of a tab's page (for AI prompts), up to 40,000 characters.
+    GetPageText {
+        request: u32,
+        tab: Option<TabId>,
+    },
+    AiChat {
+        request: u32,
+        messages: Vec<AiMessage>,
+    },
+    /// Store (or with `None`, delete) the AI provider key in the OS credential store.
+    SetAiKey {
+        key: Option<String>,
+    },
+    AiKeyStatus,
+
+    // ---- profiles, files, app
+    TopSites {
+        limit: u32,
+    },
+    OpenProfile {
+        id: String,
+    },
+    AddProfile {
+        name: String,
+        kind: crate::storage::ProfileKind,
+    },
+    /// Ask the user for a text file (mods, settings) and send its content back.
+    OpenTextFile {
+        request: u32,
+        extensions: Vec<String>,
+    },
+    SaveTextFile {
+        suggested_name: String,
+        content: String,
+    },
+    PickDownloadDir,
+    Relaunch,
 
     // ---- misc
     Panic,
-    PlaySound { sound: String },
-    OpenExternal { url: String },
-    Log { level: String, message: String },
+    PlaySound {
+        sound: String,
+    },
+    /// While on, browser shortcuts are not run so the UI can record a key combination.
+    KeyCapture {
+        on: bool,
+    },
+    OpenExternal {
+        url: String,
+    },
+    Log {
+        level: String,
+        message: String,
+    },
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, TS)]
+#[serde(rename_all = "camelCase")]
+#[ts(export)]
+pub struct AiMessage {
+    /// `user` or `assistant`.
+    pub role: String,
+    pub content: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize, TS)]
+#[serde(rename_all = "camelCase")]
+#[ts(export)]
+pub struct CleanerStats {
+    /// Bytes used by the profile folder (engine storage, history, settings, ...).
+    pub profile_bytes: u64,
+    pub history_visits: u64,
+    pub downloads: u32,
+    /// Bytes of completed downloaded files that still exist.
+    pub download_bytes: u64,
+    pub sites_with_data: u32,
+    pub cache_entries: u32,
+    pub open_tabs: u32,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize, TS)]
@@ -387,13 +635,20 @@ pub struct TabMetric {
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, TS)]
-#[serde(tag = "type", rename_all = "kebab-case", rename_all_fields = "camelCase")]
+#[serde(
+    tag = "type",
+    rename_all = "kebab-case",
+    rename_all_fields = "camelCase"
+)]
 #[ts(export)]
+// `Init` carries the whole browser state once per UI load; events are built and serialized
+// immediately, so their size in memory does not matter.
+#[allow(clippy::large_enum_variant)]
 pub enum Event {
     Init {
         engine: EngineInfo,
         session: Session,
-        settings: Settings,
+        settings: Box<Settings>,
         palette: Palette,
         themes: Vec<ThemeInfo>,
         bookmarks: Bookmarks,
@@ -402,17 +657,48 @@ pub enum Event {
         site_mods: SiteMods,
         system_dark: bool,
     },
-    Session { session: Session },
-    Settings { settings: Settings, palette: Palette, themes: Vec<ThemeInfo> },
-    TabMeta { meta: TabMeta },
-    TabClosed { tab: TabId },
-    Bookmarks { bookmarks: Bookmarks },
-    HistoryResult { request: u32, visits: Vec<Visit> },
-    Suggestions { request: u32, text: String, items: Vec<Suggestion> },
-    TopSites { sites: Vec<UrlStat> },
-    Downloads { items: Vec<DownloadRecord> },
-    DownloadProgress { id: String, received: u64, total: Option<u64>, bps: f32 },
-    FindResult { matches: u32, active: u32 },
+    Session {
+        session: Session,
+    },
+    Settings {
+        settings: Box<Settings>,
+        palette: Palette,
+        themes: Vec<ThemeInfo>,
+    },
+    TabMeta {
+        meta: TabMeta,
+    },
+    TabClosed {
+        tab: TabId,
+    },
+    Bookmarks {
+        bookmarks: Bookmarks,
+    },
+    HistoryResult {
+        request: u32,
+        visits: Vec<Visit>,
+    },
+    Suggestions {
+        request: u32,
+        text: String,
+        items: Vec<Suggestion>,
+    },
+    TopSites {
+        sites: Vec<UrlStat>,
+    },
+    Downloads {
+        items: Vec<DownloadRecord>,
+    },
+    DownloadProgress {
+        id: String,
+        received: u64,
+        total: Option<u64>,
+        bps: f32,
+    },
+    FindResult {
+        matches: u32,
+        active: u32,
+    },
     Dialog {
         id: u32,
         tab: TabId,
@@ -429,21 +715,110 @@ pub enum Event {
         selected: Vec<usize>,
         multiple: bool,
     },
-    ColorPicker { id: u32, tab: TabId, rect: Rect, color: Option<String> },
-    ContextMenu { menu: ContextMenuInfo },
-    Permission { id: u32, tab: TabId, origin: String, kind: String },
-    Auth { id: u32, tab: TabId, url: String, proxy: bool },
-    HideControl { id: u32 },
-    Toast { text: String, kind: String },
-    Fullscreen { on: bool },
-    WindowState { maximized: bool, fullscreen: bool, focused: bool },
-    Metrics { metrics: Metrics },
-    Blocked { tab: TabId, count: u32, total: u64 },
-    Panic { active: bool },
-    Pinboards { pinboards: Pinboards },
-    SiteMods { mods: SiteMods },
+    ColorPicker {
+        id: u32,
+        tab: TabId,
+        rect: Rect,
+        color: Option<String>,
+    },
+    ContextMenu {
+        menu: ContextMenuInfo,
+    },
+    Permission {
+        id: u32,
+        tab: TabId,
+        origin: String,
+        kind: String,
+    },
+    Auth {
+        id: u32,
+        tab: TabId,
+        url: String,
+        proxy: bool,
+    },
+    HideControl {
+        id: u32,
+    },
+    Toast {
+        text: String,
+        kind: String,
+    },
+    Fullscreen {
+        on: bool,
+    },
+    WindowState {
+        maximized: bool,
+        fullscreen: bool,
+        focused: bool,
+    },
+    Metrics {
+        metrics: Metrics,
+    },
+    Blocked {
+        tab: TabId,
+        count: u32,
+        total: u64,
+    },
+    Panic {
+        active: bool,
+    },
+    CleanerStats {
+        stats: CleanerStats,
+    },
+    CleanerDone {
+        summary: String,
+    },
+    HttpResult {
+        request: u32,
+        status: u16,
+        body: String,
+        error: Option<String>,
+    },
+    PageText {
+        request: u32,
+        title: String,
+        url: String,
+        text: String,
+    },
+    AiReply {
+        request: u32,
+        text: String,
+        error: Option<String>,
+    },
+    AiKey {
+        stored: bool,
+    },
+    /// A page tried to open a window without a click or key press first.
+    PopupBlocked {
+        tab: TabId,
+        host: String,
+    },
+    TextFile {
+        request: u32,
+        name: String,
+        content: String,
+    },
+    /// Unread count parsed from a web panel's page title ("(3) Discord").
+    PanelBadge {
+        id: String,
+        count: u32,
+    },
+    PanelState {
+        id: String,
+        loading: bool,
+        url: String,
+        can_go_back: bool,
+    },
+    Pinboards {
+        pinboards: Pinboards,
+    },
+    SiteMods {
+        mods: SiteMods,
+    },
     /// Something the core wants the UI to open (settings page, panel, ...).
-    Open { target: String },
+    Open {
+        target: String,
+    },
 }
 
 #[cfg(test)]
@@ -466,7 +841,13 @@ mod tests {
         );
         let c: Command =
             serde_json::from_str(r#"{"type":"reload","tab":"t1","bypassCache":true}"#).unwrap();
-        assert!(matches!(c, Command::Reload { bypass_cache: true, .. }));
+        assert!(matches!(
+            c,
+            Command::Reload {
+                bypass_cache: true,
+                ..
+            }
+        ));
         let c: Command = serde_json::from_str(r#"{"type":"ready"}"#).unwrap();
         assert_eq!(c, Command::Ready);
     }
@@ -479,7 +860,10 @@ mod tests {
 
     #[test]
     fn event_wire_format() {
-        let e = Event::FindResult { matches: 3, active: 1 };
+        let e = Event::FindResult {
+            matches: 3,
+            active: 1,
+        };
         assert_eq!(
             serde_json::to_string(&e).unwrap(),
             r#"{"type":"find-result","matches":3,"active":1}"#
@@ -490,6 +874,10 @@ mod tests {
             total: None,
             bps: 0.0,
         };
-        assert!(serde_json::to_string(&e).unwrap().contains("\"received\":1"));
+        assert!(
+            serde_json::to_string(&e)
+                .unwrap()
+                .contains("\"received\":1")
+        );
     }
 }
