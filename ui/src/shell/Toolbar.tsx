@@ -9,6 +9,7 @@ import type { Suggestion } from "../ipc/generated/Suggestion";
 import { clsx, isInternal } from "../lib/util";
 import { useStore } from "../state/store";
 import { Input } from "../components/Field";
+import { PinnedExtensions } from "./ExtensionButtons";
 
 let requestId = 1;
 
@@ -51,6 +52,7 @@ export function Toolbar() {
         <Icon name="crop" size={17} />
       </button>
       <span className="toolbar-divider" />
+      <PinnedExtensions />
       <button className={clsx("tool-btn", popup === "extensions" && "active")} title="Extensions" onClick={(e) => openPopup("extensions", anchor(e))}>
         <Icon name="puzzle" size={17} />
       </button>
@@ -141,6 +143,7 @@ function AddressBar() {
 
   const bookmarked = bookmarks.nodes.some((n) => n.url === url && n.parent !== "trash");
   const security = meta?.security ?? "none";
+  const extension = extensionName(url);
   const zoom = meta?.zoom ?? tab?.zoom ?? 1;
 
   const commit = (value: string, s?: Suggestion) => {
@@ -161,11 +164,11 @@ function AddressBar() {
   return (
     <div className={clsx("address", editing && "editing", open && "open")}>
       <button
-        className={clsx("address-security", security)}
-        title={securityLabel(security)}
+        className={clsx("address-security", extension ? "internal" : security)}
+        title={extension ? `A page of the extension "${extension}"` : securityLabel(security)}
         onClick={(e) => openPopup("site-info", (e.currentTarget as HTMLElement).getBoundingClientRect())}
       >
-        <Icon name={security === "secure" ? "lock" : security === "insecure" ? "lock-open" : security === "internal" ? "shield-check" : editing ? "search" : "globe"} size={14} />
+        <Icon name={extension ? "puzzle" : security === "secure" ? "lock" : security === "insecure" ? "lock-open" : security === "internal" ? "shield-check" : editing ? "search" : "globe"} size={14} />
       </button>
       <Input
         ref={input}
@@ -259,11 +262,27 @@ function AddressBar() {
   );
 }
 
+const EXTENSION_HOST = ".haku-extension.invalid";
+
+/** The extension whose page this is, if any. */
+function extensionName(url: string): string | null {
+  try {
+    const u = new URL(url);
+    if (u.protocol !== "https:" || !u.hostname.endsWith(EXTENSION_HOST)) return null;
+    const id = u.hostname.slice(0, -EXTENSION_HOST.length);
+    return useStore.getState().extensions.find((e) => e.id === id)?.name ?? "Extension";
+  } catch {
+    return null;
+  }
+}
+
 function displayUrl(url: string, full: boolean): string {
   if (!url || url.startsWith("haku://start") || url === "about:blank") return "";
   if (full) return url;
   try {
     const u = new URL(url);
+    const ext = extensionName(url);
+    if (ext) return `${ext} › ${u.pathname.replace(/^\//, "")}${u.search}${u.hash}`;
     if (u.protocol === "https:" || u.protocol === "http:") {
       const rest = u.pathname === "/" && !u.search && !u.hash ? "" : u.pathname + u.search + u.hash;
       return u.host + rest;

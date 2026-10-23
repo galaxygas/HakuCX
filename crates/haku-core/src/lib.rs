@@ -8,6 +8,7 @@
 //! `cargo test -p haku-core` regenerates their TypeScript definitions in `ui/src/ipc/generated`.
 
 pub mod bookmarks;
+pub mod extensions;
 pub mod history;
 pub mod ipc;
 pub mod omnibox;

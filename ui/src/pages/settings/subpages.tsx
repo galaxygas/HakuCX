@@ -204,7 +204,7 @@ export function PanicPage() {
 }
 
 /** A key event as an accelerator string the Rust side parses (`Ctrl+Shift+K`, `F12`). */
-function accelerator(e: React.KeyboardEvent): string | null {
+export function accelerator(e: React.KeyboardEvent): string | null {
   if (["Control", "Shift", "Alt", "Meta"].includes(e.key)) return null;
   const named: Record<string, string> = { ArrowLeft: "Left", ArrowRight: "Right", ArrowUp: "Up", ArrowDown: "Down", " ": "Space", Escape: "Escape" };
   let key = named[e.key] ?? (e.key.length === 1 ? e.key.toUpperCase() : e.key);

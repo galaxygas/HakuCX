@@ -15,6 +15,8 @@ mod commands;
 mod content;
 mod controls;
 mod delegate;
+mod ext_api;
+mod extensions;
 mod input;
 mod page_scripts;
 mod panels;
@@ -71,6 +73,8 @@ pub struct LaunchOptions {
     pub private: bool,
     /// An extra window of an already running profile (see `app::prepare`).
     pub secondary: bool,
+    /// Unpacked extensions to run for this session only (`--load-extension`).
+    pub load_extensions: Vec<std::path::PathBuf>,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -87,13 +91,15 @@ pub struct Layout {
     pub page: PixelRect,
     pub split: Option<PixelRect>,
     pub panel: Option<PixelRect>,
+    /// An open extension popup (drawn and hit-tested above the UI).
+    pub popup: Option<PixelRect>,
     pub overlay: bool,
     pub modal: bool,
     pub regions: Vec<PixelRect>,
 }
 
 /// Work queued to run after `Servo::spin_event_loop` returns (see the module docs).
-type Deferred = Box<dyn FnOnce(&Browser)>;
+pub(crate) type Deferred = Box<dyn FnOnce(&Browser)>;
 
 pub struct Browser {
     this: Weak<Browser>,
@@ -102,12 +108,19 @@ pub struct Browser {
     window_context: Rc<WindowRenderingContext>,
     compositor: Compositor,
     ui_context: Rc<TextureRenderingContext>,
-    /// Page painters: the main pane, the right-hand split pane, and sidebar web panels.
-    pane_contexts: [Rc<TextureRenderingContext>; 3],
+    /// Page painters: the main pane, the right-hand split pane, sidebar web panels, and
+    /// extension popups.
+    pane_contexts: [Rc<TextureRenderingContext>; 4],
+    /// Painter for hidden extension pages (background pages, offscreen documents).
+    ext_context: Rc<TextureRenderingContext>,
     ui: RefCell<Option<WebView>>,
 
     // ---- profile and state
+    /// Where the profile saves data; `None` for private windows and Roguelike profiles.
     paths: Option<ProfilePaths>,
+    /// The profile's folders even when nothing is saved (private windows still run the
+    /// profile's extensions that are allowed in private).
+    ext_paths: Option<ProfilePaths>,
     private: bool,
     profile: ProfileInfo,
     profiles: RefCell<ProfileList>,
@@ -166,6 +179,8 @@ pub struct Browser {
     /// animations and to run "update the rendering", which also handles queued input.
     pub(crate) animating: RefCell<std::collections::HashSet<servo::WebViewId>>,
     secondary: bool,
+    /// WebExtensions (see `extensions.rs`).
+    ext: RefCell<extensions::ExtState>,
 
     // ---- services
     audio: RefCell<Audio>,
@@ -194,7 +209,13 @@ impl Browser {
             Rc::new(TextureRenderingContext::new(window_context.clone(), size)),
             Rc::new(TextureRenderingContext::new(window_context.clone(), size)),
             Rc::new(TextureRenderingContext::new(window_context.clone(), size)),
+            Rc::new(TextureRenderingContext::new(window_context.clone(), size)),
         ];
+        // Hidden extension pages never paint; a modest size keeps `window.innerWidth` sane.
+        let ext_context = Rc::new(TextureRenderingContext::new(
+            window_context.clone(),
+            winit::dpi::PhysicalSize::new(800, 600),
+        ));
         let Startup {
             options,
             data_root,
@@ -246,6 +267,7 @@ impl Browser {
             compositor,
             ui_context,
             pane_contexts,
+            ext_context,
             ui: RefCell::new(None),
             pinboards: RefCell::new(
                 load(ProfilePaths::pinboards)
@@ -263,6 +285,7 @@ impl Browser {
                     .unwrap_or_default(),
             ),
             // Private windows and Roguelike profiles write nothing.
+            ext_paths: paths.clone(),
             paths: if ephemeral { None } else { paths.clone() },
             private: options.private,
             profile,
@@ -304,6 +327,7 @@ impl Browser {
             key_capture: Cell::new(false),
             animating: RefCell::default(),
             secondary: options.secondary,
+            ext: RefCell::default(),
             audio: RefCell::new(Audio::new()),
             blocker: Blocker::new(wake.clone()),
             download_engine: DownloadEngine::new(wake.clone()),
@@ -319,10 +343,17 @@ impl Browser {
         }
         browser.apply_engine_settings();
         browser.create_ui_shell();
-        for url in &options.urls {
-            browser.open_url_in_new_tab(url);
+        browser.load_extensions();
+        for dir in &options.load_extensions {
+            browser.ext_load_for_session(dir);
         }
-        browser.reconcile();
+        let urls = options.urls.clone();
+        browser.ext_after_startup(move |b| {
+            for url in &urls {
+                b.open_url_in_new_tab(url);
+            }
+            b.reconcile();
+        });
         browser
     }
 
@@ -397,6 +428,12 @@ impl Browser {
         !self.animating.borrow().is_empty()
     }
 
+    /// Something needs the event loop to wake soon even without input (a request held for an
+    /// extension's `webRequest` listener must be released on time).
+    pub fn needs_timer(&self) -> bool {
+        self.ext_has_held_requests()
+    }
+
     pub(crate) fn is_ui(&self, webview: &WebView) -> bool {
         self.ui
             .borrow()
@@ -431,6 +468,12 @@ impl Browser {
                 work(self);
             }
         }
+        self.ext_tab_events();
+        self.ext_check_popup_focus();
+        if self.ext_has_held_requests() {
+            self.ext_expire();
+        }
+        self.ext_flush_info();
         self.flush_events();
         self.save_if_due(false);
     }
@@ -511,6 +554,7 @@ impl Browser {
         for meta in self.all_tab_meta() {
             self.emit(Event::TabMeta { meta });
         }
+        self.ext.borrow_mut().info_dirty = true;
     }
 
     pub(crate) fn session_changed(&self) {
@@ -552,6 +596,7 @@ impl Browser {
         self.emit(Event::Downloads {
             items: self.downloads.borrow().items.clone(),
         });
+        self.ext_download_events();
     }
 
     /// Push the settings that live inside the engine (user agent languages, proxy, devtools...).
@@ -753,6 +798,7 @@ impl Browser {
         if clear.cache {
             self.servo.network_manager().clear_cache();
         }
+        self.ext_shutdown();
         self.views.borrow_mut().clear();
         self.by_webview.borrow_mut().clear();
         self.web_panels.borrow_mut().clear();

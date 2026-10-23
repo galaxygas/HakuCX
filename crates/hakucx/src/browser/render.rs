@@ -2,7 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-//! Frame composition: page panes first (each over a white underlay), then the UI shell.
+//! Frame composition: page panes first (each over a white underlay), then an open extension
+//! popup, then the UI shell. The UI leaves transparent holes where pages and the popup show,
+//! so its menus and dialogs can still cover them.
 
 use log::warn;
 use servo::RenderingContext;
@@ -38,6 +40,14 @@ impl Browser {
         if let Some(ui) = self.ui_webview() {
             ui.paint();
         }
+        let popup = layout
+            .popup
+            .filter(|_| self.pane_webview(Pane::Popup).is_some());
+        if popup.is_some()
+            && let Some(webview) = self.pane_webview(Pane::Popup)
+        {
+            webview.paint();
+        }
 
         let gl = self.window_context.glow_gl_api();
         let size = self.window.inner_size();
@@ -47,7 +57,7 @@ impl Browser {
         unsafe {
             self.compositor
                 .begin(&gl, size.width, size.height, background);
-            for (pane, rect) in &panes {
+            for (pane, rect) in panes.iter().chain(popup.map(|r| (Pane::Popup, r)).iter()) {
                 self.compositor
                     .fill(&gl, *rect, viewport_h, [1.0, 1.0, 1.0, 1.0]);
                 let texture = self.pane_contexts[pane.index()].texture_id();

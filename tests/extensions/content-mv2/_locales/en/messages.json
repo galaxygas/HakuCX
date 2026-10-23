@@ -1,0 +1,5 @@
+{
+  "extName": { "message": "HakuCX Test Content" },
+  "extDescription": { "message": "Sample MV2 extension: a content script with CSS, messages and ports to its background page, a context-menu item, a toolbar button, a keyboard shortcut and storage." },
+  "bannerHello": { "message": "Content script ran on $HOST$", "placeholders": { "host": { "content": "$1" } } }
+}

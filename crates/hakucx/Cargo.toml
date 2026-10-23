@@ -44,6 +44,11 @@ sysinfo = { workspace = true }
 keyring = { workspace = true }
 dirs = { workspace = true }
 html-escape = { workspace = true }
+uuid = { workspace = true }
+cookie = { workspace = true }
+regex = { workspace = true }
+sha2 = { workspace = true }
+time = { workspace = true }
 
 [target.'cfg(windows)'.dependencies]
 # Servo's own shell uses ANGLE (EGL over D3D) on Windows instead of WGL.

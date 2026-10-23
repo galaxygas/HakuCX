@@ -22,6 +22,12 @@ time = { workspace = true }
 html-escape = { workspace = true }
 ts-rs = { workspace = true }
 dirs = { workspace = true }
+zip = { workspace = true }
+flate2 = { workspace = true }
+sha2 = { workspace = true }
+regex = { workspace = true }
+base64 = { workspace = true }
+aws-lc-rs = { workspace = true }
 
 [dev-dependencies]
 tempfile = { workspace = true }

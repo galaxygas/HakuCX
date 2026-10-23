@@ -1,0 +1,14 @@
+[
+  {
+    "id": 1,
+    "priority": 1,
+    "action": { "type": "block" },
+    "condition": { "urlFilter": "/blocked.js", "resourceTypes": ["script"] }
+  },
+  {
+    "id": 2,
+    "priority": 1,
+    "action": { "type": "redirect", "redirect": { "extensionPath": "/green.png" } },
+    "condition": { "urlFilter": "redirect-me.png", "resourceTypes": ["image"] }
+  }
+]

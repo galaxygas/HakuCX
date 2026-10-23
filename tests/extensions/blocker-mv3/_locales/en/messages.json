@@ -1,0 +1,4 @@
+{
+  "extName": { "message": "HakuCX Test Blocker" },
+  "extDescription": { "message": "Sample MV3 extension: static and dynamic declarativeNetRequest rules, a redirect, a badge count, a popup and an options page." }
+}

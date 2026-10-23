@@ -40,6 +40,15 @@ HakuCX is a Rust application that embeds the Servo web engine (`servo` crate, pi
 
 `haku://ui/` (the UI shell) is served by `HakuProtocolHandler` from `ui/dist`, compiled into the binary, with a strict Content-Security-Policy. Other internal pages (`haku://start/`, `haku://settings/...`, history, bookmarks, downloads, mods, GX Corner, ...) are not separate webviews: the UI shell draws them inside the page area while the tab shows an internal URL, so they share the UI's IPC channel and nothing else does. Web content is never allowed to navigate to `haku:`.
 
+## Extensions
+
+Servo has no WebExtensions support, so HakuCX implements the runtime (details and the API support matrix: [EXTENSIONS.md](EXTENSIONS.md)):
+
+- Extension pages are served by HakuCX from `https://<id>.haku-extension.invalid/` through `load_web_resource` (a custom scheme would get an opaque origin, where web storage throws). Background pages and service workers run in hidden webviews on their own painter; a popup runs in a fourth pane context and is composited under the UI, which leaves a hole for it (so UI menus and dialogs can still cover it) and keeps it inside the page area.
+- Extension code calls the browser with console lines carrying a per-session token, like the UI's IPC but on a separate, token-checked channel with a per-context method allow-list; the UI's own IPC channel stays restricted to the UI webview.
+- Content scripts are one user script per extension in every page's `UserContentManager`; they run in the page's world.
+- declarativeNetRequest and blocking `webRequest` run in `load_web_resource`. A blocked decision holds the request (and, because Servo's interceptor is serialized, every other request) for at most 400 ms.
+
 ## UI state
 
 The UI keeps a mirror of the core's state in a Zustand store (`ui/src/state/store.ts`), updated only by events from Rust. Selectors must return stable values: a selector that returns a fresh `[]` or object on every call makes React re-render forever (use the shared `NONE` constant).

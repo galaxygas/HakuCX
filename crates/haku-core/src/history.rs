@@ -245,6 +245,55 @@ impl History {
             .collect())
     }
 
+    /// URLs (one row each, with their row id) whose address or title contains `text` and that
+    /// were last visited in [from, to), most recent first. For `chrome.history.search`.
+    pub fn search_urls(
+        &self,
+        text: &str,
+        from: i64,
+        to: i64,
+        limit: usize,
+    ) -> rusqlite::Result<Vec<(i64, UrlStat)>> {
+        let like = format!("%{}%", escape_like(text.trim()));
+        let mut stmt = self.conn.prepare(
+            "SELECT id, url, title, visit_count, typed_count, last_visit FROM urls
+             WHERE (?1 = '%%' OR url LIKE ?1 ESCAPE '\\' OR title LIKE ?1 ESCAPE '\\')
+               AND last_visit >= ?2 AND last_visit < ?3
+             ORDER BY last_visit DESC LIMIT ?4",
+        )?;
+        let rows = stmt.query_map(params![like, from, to, limit as i64], |r| {
+            Ok((
+                r.get(0)?,
+                UrlStat {
+                    url: r.get(1)?,
+                    title: r.get(2)?,
+                    visit_count: r.get(3)?,
+                    typed_count: r.get(4)?,
+                    last_visit: r.get(5)?,
+                },
+            ))
+        })?;
+        rows.collect()
+    }
+
+    /// Every visit to one URL, oldest first: (url row id, visit id, time, transition).
+    pub fn visits_for_url(&self, url: &str) -> rusqlite::Result<Vec<(i64, i64, i64, Transition)>> {
+        let mut stmt = self.conn.prepare(
+            "SELECT u.id, v.id, v.visited_at, v.transition FROM visits v JOIN urls u ON u.id = v.url_id
+             WHERE u.url = ?1 ORDER BY v.visited_at",
+        )?;
+        let rows = stmt.query_map([url], |r| {
+            let transition = match r.get::<_, i64>(3)? {
+                1 => Transition::Typed,
+                2 => Transition::Bookmark,
+                3 => Transition::Reload,
+                _ => Transition::Link,
+            };
+            Ok((r.get(0)?, r.get(1)?, r.get(2)?, transition))
+        })?;
+        rows.collect()
+    }
+
     pub fn delete_visit(&self, id: i64) -> rusqlite::Result<()> {
         let url_id: Option<i64> = self
             .conn
@@ -362,6 +411,27 @@ mod tests {
         assert_eq!(found.len(), 2);
         let ranged = h.query("", Some(1_500), Some(4_000), 10, 0).unwrap();
         assert_eq!(ranged.len(), 1);
+    }
+
+    #[test]
+    fn url_search_and_visits_for_extensions() {
+        let h = History::in_memory().unwrap();
+        h.record_visit("https://servo.org/", "Servo", Transition::Typed, 1_000)
+            .unwrap();
+        h.record_visit("https://servo.org/", "", Transition::Reload, 2_000)
+            .unwrap();
+        h.record_visit("https://example.com/", "Example", Transition::Link, 3_000)
+            .unwrap();
+        let urls = h.search_urls("", 0, i64::MAX, 10).unwrap();
+        assert_eq!(urls.len(), 2);
+        assert_eq!(urls[0].1.url, "https://example.com/");
+        assert_eq!(urls[1].1.visit_count, 1);
+        assert_eq!(h.search_urls("servo", 0, 1_500, 10).unwrap().len(), 0);
+        let visits = h.visits_for_url("https://servo.org/").unwrap();
+        assert_eq!(visits.len(), 2);
+        assert_eq!(visits[0].3, Transition::Typed);
+        assert_eq!(visits[1].3, Transition::Reload);
+        assert_eq!(visits[0].0, urls[1].0);
     }
 
     #[test]

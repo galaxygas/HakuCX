@@ -2,7 +2,7 @@
 
 HakuCX is an independent, open-source desktop browser with a GX-style interface: themes, wallpapers, sounds, a sidebar, resource limiters and deep customization. It is built in **Rust** on the **[Servo](https://servo.org) web engine**. It is not Chromium, not Electron, and not affiliated with Opera.
 
-> **Status: early development.** Browsing, tabs, workspaces, islands, split screen, history, bookmarks, Speed Dial, downloads, ad and tracker blocking, the full GX-style interface and settings, GX Control, GX Cleaner, shaders, web mods, sounds, GX Corner and a bring-your-own-key AI assistant work today. Extensions, the password manager, sync, GX Lights and the installer are still being built (see [the roadmap](#roadmap)). Expect sites that break: Servo is younger than Blink and Gecko.
+> **Status: early development.** Browsing, tabs, workspaces, islands, split screen, history, bookmarks, Speed Dial, downloads, ad and tracker blocking, the full GX-style interface and settings, GX Control, GX Cleaner, shaders, web mods, sounds, GX Corner, a bring-your-own-key AI assistant and Chrome/Firefox extensions work today. The password manager, sync, GX Lights and the installer are still being built (see [the roadmap](#roadmap)). Expect sites that break: Servo is younger than Blink and Gecko.
 
 ## Why
 
@@ -20,6 +20,7 @@ These come from Servo itself and cannot be fixed inside HakuCX:
 | No EME / Widevine DRM | Netflix, Disney+, Spotify Web and other DRM video/audio will not play. |
 | No Media Source Extensions | Adaptive-streaming players (including parts of YouTube) may not play. |
 | No content-process sandbox on Windows | A Servo bug that leads to code execution is not contained by an OS sandbox. See [SECURITY.md](SECURITY.md). |
+| No isolated worlds | Extension content scripts share the page's JavaScript world. See [SECURITY.md](SECURITY.md) and [EXTENSIONS.md](docs/EXTENSIONS.md). |
 | ~68% Web Platform Tests pass rate | Some sites render incorrectly. Reports help: please file them. |
 
 ## Building (Windows)
@@ -67,7 +68,7 @@ See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for how the pieces fit together
 | M3 | GX-fidelity UI: tab strip, sidebar, Easy Setup, settings, themes, wallpapers | done |
 | M4 | Ad/tracker blocking, privacy, permissions, proxy/VPN, downloads | mostly done (third-party cookie control and DoH need engine support) |
 | M5 | GX Control (kernel limits), Cleaner, shaders, web mods, sounds, lights, player, video tools | in progress: GX Lights, video pop-out and the miniplayer remain |
-| M6 | WebExtensions runtime (Chrome MV2/MV3, Firefox) | planned |
+| M6 | WebExtensions runtime (Chrome MV2/MV3, Firefox) | done (see [EXTENSIONS.md](docs/EXTENSIONS.md) for what each API supports) |
 | M7 | Mods, Corner, AI, password manager, sync | in progress: Mods, GX Corner, Rewards and AI work; password manager and sync remain |
 | M8 | Installer, updater, default-browser integration | planned |
 

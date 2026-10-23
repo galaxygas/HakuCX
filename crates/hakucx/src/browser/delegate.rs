@@ -86,6 +86,12 @@ impl WebViewDelegate for Browser {
     }
 
     fn notify_load_status_changed(&self, webview: WebView, status: LoadStatus) {
+        if self.ext_is_page(&webview) {
+            if status == LoadStatus::Complete {
+                self.defer(move |b| b.ext_page_loaded(&webview));
+            }
+            return;
+        }
         if let Some(panel) = self.panel_for_webview(&webview) {
             self.panel_state(&panel, &webview, status != LoadStatus::Complete);
             return;
@@ -94,6 +100,11 @@ impl WebViewDelegate for Browser {
             return;
         };
         self.set_loading(&tab, status);
+        if status == LoadStatus::Started {
+            // The old document's content scripts are gone.
+            let navigated = tab.clone();
+            self.defer(move |b| b.ext_tab_navigated(&navigated));
+        }
         if status == LoadStatus::HeadParsed || status == LoadStatus::Complete {
             let tab_for_style = tab.clone();
             self.defer(move |b| b.apply_page_style(&tab_for_style));
@@ -164,6 +175,12 @@ impl WebViewDelegate for Browser {
     }
 
     fn notify_closed(&self, webview: WebView) {
+        if self.ext_is_page(&webview) {
+            self.defer(move |b| {
+                b.ext_webview_closed(&webview);
+            });
+            return;
+        }
         // `window.close()` from a page.
         if let Some(tab) = self.tab_for_webview(&webview) {
             self.defer(move |b| {
@@ -213,6 +230,11 @@ impl WebViewDelegate for Browser {
             request.deny();
             return;
         }
+        if !self.ext_navigation_allowed(webview.url().as_ref(), &url) {
+            warn!("blocked a page navigating to an extension page it may not open");
+            request.deny();
+            return;
+        }
         if page_scripts::download_extension(&url)
             && let Some(tab) = self
                 .tab_for_webview(&webview)
@@ -220,7 +242,9 @@ impl WebViewDelegate for Browser {
         {
             request.deny();
             let referrer = webview.url().map(|u| u.to_string());
-            self.defer(move |b| b.start_download(url.to_string(), None, referrer, Some(tab)));
+            self.defer(move |b| {
+                let _ = b.start_download(url.to_string(), None, referrer, Some(tab));
+            });
             return;
         }
         request.allow();
@@ -231,10 +255,12 @@ impl WebViewDelegate for Browser {
         // open as ordinary tabs after the active one.
         let parent_tab = match self.tab_for_webview(&parent) {
             Some(t) => t,
-            None if self.panel_for_webview(&parent).is_some() => match self.active_tab_id() {
-                Some(t) => t,
-                None => return,
-            },
+            None if self.panel_for_webview(&parent).is_some() || self.ext_is_page(&parent) => {
+                match self.active_tab_id() {
+                    Some(t) => t,
+                    None => return,
+                }
+            }
             None => return,
         };
         // Pop-up blocker: Servo does not track user activation for the browser, so HakuCX
@@ -262,7 +288,12 @@ impl WebViewDelegate for Browser {
             .get(&parent_tab)
             .and_then(|v| v.last_input)
             .is_some_and(|t| t.elapsed() < std::time::Duration::from_millis(1500));
-        if block && !allowlisted && !recent_input && self.panel_for_webview(&parent).is_none() {
+        if block
+            && !allowlisted
+            && !recent_input
+            && self.panel_for_webview(&parent).is_none()
+            && !self.ext_is_page(&parent)
+        {
             log::info!("blocked a pop-up without user activation");
             self.emit(Event::PopupBlocked {
                 tab: parent_tab.clone(),
@@ -288,6 +319,7 @@ impl WebViewDelegate for Browser {
         });
         let content_manager = std::rc::Rc::new(servo::UserContentManager::new(&self.servo));
         page_scripts::install(&content_manager, &self.settings.borrow());
+        self.add_extension_scripts(&content_manager);
         let webview = request
             .builder(self.pane_context(pane))
             .hidpi_scale_factor(euclid::Scale::new(self.scale()))
@@ -327,7 +359,17 @@ impl WebViewDelegate for Browser {
     }
 
     fn load_web_resource(&self, webview: WebView, load: WebResourceLoad) {
-        self.filter_request(webview, load);
+        if let Some(id) = crate::extensions::id_of_url(&load.request().url) {
+            self.serve_extension(&webview, load, &id);
+            return;
+        }
+        let Some(load) = self.filter_request(webview.clone(), load) else {
+            return;
+        };
+        if let Some(tab) = self.tab_for_webview(&webview) {
+            // Dropping the load lets the request continue.
+            drop(self.ext_filter_request(&tab, &webview, load));
+        }
     }
 
     fn show_notification(&self, webview: WebView, notification: servo::Notification) {
@@ -355,6 +397,14 @@ impl WebViewDelegate for Browser {
                     webview.url().map(|u| u.origin().ascii_serialization())
                 );
             }
+            return;
+        }
+        if Self::is_ext_message(&message) {
+            self.defer(move |b| b.handle_ext_message(webview, &message));
+            return;
+        }
+        if matches!(level, ConsoleLogLevel::Error) && self.ext_is_page(&webview) {
+            self.defer(move |b| b.ext_note_error(&webview, &message));
             return;
         }
         if let Some(payload) = message.strip_prefix(PAGE_PREFIX) {

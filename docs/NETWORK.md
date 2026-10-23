@@ -20,4 +20,6 @@ Requests made by HakuCX code go out through `reqwest` (filter lists, downloads, 
 
 Sidebar web panels (Twitch, Discord, WhatsApp, ...) are ordinary pages: they load only when you open them, and stay loaded until you close the panel.
 
+Extensions you install make their own requests, like any page; HakuCX does not add any for them, with one exception: when an extension redirects a page's subresource to another `http(s)` address (declarativeNetRequest or `webRequest`), HakuCX fetches that address itself, without cookies, and hands the result to the page, because Servo does not follow redirects from intercepted requests. Extension pages themselves are served from the profile, never from the network (`*.haku-extension.invalid` does not resolve). HakuCX does not check for extension updates.
+
 Not built yet, and listed here when they land: update checks (GitHub Releases), folder sync (no network; your sync app moves the files), GX Lights (local only: Razer Chroma SDK on `localhost:54235`, OpenRGB on `127.0.0.1:6742`), MQTT smart home (your broker).

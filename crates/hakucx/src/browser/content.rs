@@ -48,9 +48,14 @@ enum PageMessage {
 impl Browser {
     // ------------------------------------------------------------------ request filtering
 
-    pub(crate) fn filter_request(&self, webview: WebView, load: WebResourceLoad) {
+    /// Built-in blocking. Returns the load when the browser did not handle it.
+    pub(crate) fn filter_request(
+        &self,
+        webview: WebView,
+        load: WebResourceLoad,
+    ) -> Option<WebResourceLoad> {
         let Some(tab) = self.tab_for_webview(&webview) else {
-            return;
+            return Some(load);
         };
         let request = load.request();
         let url = request.url.to_string();
@@ -89,14 +94,16 @@ impl Browser {
                 malware,
             },
         );
-        let Some(category) = verdict else { return };
+        let Some(category) = verdict else {
+            return Some(load);
+        };
         if request.is_for_main_frame {
             warn!("blocked a known malicious site");
             let response = WebResourceResponse::new(request.url.clone());
             let mut intercepted = load.intercept(response);
             intercepted.send_body_data(crate::protocol::blocked_page(&url).into_bytes());
             intercepted.finish();
-            return;
+            return None;
         }
         let _ = category;
         let response = WebResourceResponse::new(request.url.clone());
@@ -116,6 +123,7 @@ impl Browser {
             count,
             total: self.blocked_total.get(),
         });
+        None
     }
 
     /// Re-apply force dark, the active shader, site mods and cosmetic filters to a tab.
@@ -204,7 +212,7 @@ impl Browser {
                     .webview_for_tab(tab)
                     .and_then(|w| w.url())
                     .map(|u| u.to_string());
-                self.start_download(
+                let _ = self.start_download(
                     url,
                     Some(filename).filter(|f| !f.is_empty()),
                     referrer,
@@ -266,7 +274,7 @@ impl Browser {
 
     // ------------------------------------------------------------------ downloads
 
-    fn download_dir(&self) -> PathBuf {
+    pub(crate) fn download_dir(&self) -> PathBuf {
         let configured = self.settings.borrow().downloads.directory.clone();
         if !configured.is_empty() {
             let p = PathBuf::from(configured);
@@ -296,13 +304,14 @@ impl Browser {
     }
 
     /// Download `url` with the page's cookies. Asks where to save it if the setting says so.
+    /// Returns the download's id, or `None` if the user cancelled the save dialog.
     pub(crate) fn start_download(
         &self,
         url: String,
         name_hint: Option<String>,
         referrer: Option<String>,
         _tab: Option<TabId>,
-    ) {
+    ) -> Option<String> {
         let directory = self.download_dir();
         let path = if self.settings.borrow().downloads.ask_where {
             let suggested = name_hint
@@ -310,15 +319,14 @@ impl Browser {
                 .or_else(|| crate::downloads::filename_from_url(&url))
                 .map(|n| haku_core::records::sanitize_file_name(&n))
                 .unwrap_or_else(|| "download".into());
-            match rfd::FileDialog::new()
-                .set_parent(&self.window)
-                .set_directory(&directory)
-                .set_file_name(&suggested)
-                .save_file()
-            {
-                Some(p) => Some(p),
-                None => return,
-            }
+            // Cancelling the dialog cancels the download.
+            Some(
+                rfd::FileDialog::new()
+                    .set_parent(&self.window)
+                    .set_directory(&directory)
+                    .set_file_name(&suggested)
+                    .save_file()?,
+            )
         } else {
             None
         };
@@ -330,7 +338,7 @@ impl Browser {
         self.downloads_changed();
         info!("download started");
         self.download_engine.start(DownloadRequest {
-            id,
+            id: id.clone(),
             cookie_header: self.cookie_header(&url),
             url,
             referrer,
@@ -345,6 +353,7 @@ impl Browser {
                 target: "downloads-popup".into(),
             });
         }
+        Some(id)
     }
 
     /// A navigation landed on something that is not a page: download it instead and return the
@@ -375,7 +384,7 @@ impl Browser {
                 self.session_changed();
             }
         }
-        self.start_download(url.to_string(), None, None, Some(tab.clone()));
+        let _ = self.start_download(url.to_string(), None, None, Some(tab.clone()));
     }
 
     fn save_data_url(&self, data_url: &str, filename: &str) {

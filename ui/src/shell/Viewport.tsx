@@ -29,10 +29,11 @@ function useLayoutReporter(main: React.RefObject<HTMLDivElement | null>, split: 
       const page = rectOf(main.current) ?? { x: 0, y: 0, w: 1, h: 1 };
       const splitRect = rectOf(split.current);
       const panel = rectOf(document.querySelector(".web-panel-hole"));
+      const extPopup = rectOf(document.querySelector(".ext-popup-hole"));
       const regions = Array.from(document.querySelectorAll("[data-hit]"))
         .map(rectOf)
         .filter((r): r is Rect => r !== null);
-      const msg = { type: "layout" as const, page, split: splitRect, panel, overlay, modal, blur: [] as Rect[], regions };
+      const msg = { type: "layout" as const, page, split: splitRect, panel, overlay, modal, blur: [] as Rect[], regions, extPopup };
       const key = JSON.stringify(msg);
       if (key !== last.current) {
         last.current = key;

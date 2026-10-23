@@ -1,0 +1,7 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+
+body { width: 260px; margin: 0; padding: 14px; font: 14px system-ui, sans-serif; background: #1b1530; color: #eee; }
+h1 { margin: 0 0 8px; font-size: 16px; color: #b48cff; }
+button { padding: 6px 12px; border: 0; border-radius: 6px; background: #7d46f2; color: #fff; }

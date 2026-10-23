@@ -73,8 +73,18 @@ impl Browser {
     /// Convert an engine rect (device pixels inside the page) to UI CSS pixels in the window.
     fn page_rect_to_ui(&self, webview: &WebView, rect: servo::DeviceIntRect) -> Rect {
         let scale = self.ui_scale();
-        if self.panel_for_webview(webview).is_some() {
-            let origin = self.layout.borrow().clone().panel.unwrap_or_default();
+        let floating = if self.panel_for_webview(webview).is_some() {
+            Some(self.layout.borrow().panel)
+        } else if self
+            .ext_popup_webview()
+            .is_some_and(|w| w.id() == webview.id())
+        {
+            Some(self.layout.borrow().popup)
+        } else {
+            None
+        };
+        if let Some(origin) = floating {
+            let origin = origin.unwrap_or_default();
             return Rect {
                 x: (origin.x + rect.min.x as f32) / scale,
                 y: (origin.y + rect.min.y as f32) / scale,
@@ -91,6 +101,7 @@ impl Browser {
                     super::Pane::Main => layout.page,
                     super::Pane::Split => layout.split.unwrap_or(layout.page),
                     super::Pane::Panel => layout.panel.unwrap_or(layout.page),
+                    super::Pane::Popup => layout.popup.unwrap_or(layout.page),
                 })
             })
             .unwrap_or_default();
@@ -102,12 +113,19 @@ impl Browser {
         }
     }
 
-    /// The tab a prompt belongs to, or `panel:<id>` for sidebar web panels.
+    /// The tab a prompt belongs to, `panel:<id>` for sidebar web panels, or `ext-popup:<id>`
+    /// for an extension popup.
     pub(crate) fn prompt_target(&self, webview: &WebView) -> Option<TabId> {
-        self.tab_for_webview(webview).or_else(|| {
-            self.panel_for_webview(webview)
-                .map(|p| format!("{}{p}", super::panels::PANEL_TARGET))
-        })
+        self.tab_for_webview(webview)
+            .or_else(|| {
+                self.panel_for_webview(webview)
+                    .map(|p| format!("{}{p}", super::panels::PANEL_TARGET))
+            })
+            .or_else(|| {
+                let st = self.ext.borrow();
+                let (id, popup, _) = st.popup.as_ref()?;
+                (popup.id() == webview.id()).then(|| format!("ext-popup:{id}"))
+            })
     }
 
     pub(crate) fn show_control(&self, webview: WebView, control: EmbedderControl) {
@@ -140,7 +158,7 @@ impl Browser {
                     .borrow_mut()
                     .insert(id, PendingControl::Dialog(dialog, engine_id));
                 // A dialog belongs to its tab: bring that tab forward.
-                if !tab.starts_with(super::panels::PANEL_TARGET)
+                if self.session.borrow().tab(&tab).is_some()
                     && self.active_tab_id().as_ref() != Some(&tab)
                 {
                     self.session.borrow_mut().activate(&tab);
@@ -202,22 +220,22 @@ impl Browser {
                 let info = menu.element_info();
                 let rect = self.page_rect_to_ui(&webview, menu.position());
                 let flags = info.flags;
-                self.emit(Event::ContextMenu {
-                    menu: ContextMenuInfo {
-                        id,
-                        tab: tab.clone(),
-                        x: rect.x,
-                        y: rect.y,
-                        link_url: info.link_url.as_ref().map(|u| u.to_string()),
-                        image_url: info.image_url.as_ref().map(|u| u.to_string()),
-                        editable: flags
-                            .contains(servo::ContextMenuElementInformationFlags::EditableText),
-                        selection: flags
-                            .contains(servo::ContextMenuElementInformationFlags::Selection),
-                        can_go_back: webview.can_go_back(),
-                        can_go_forward: webview.can_go_forward(),
-                    },
-                });
+                let mut menu_info = ContextMenuInfo {
+                    id,
+                    tab: tab.clone(),
+                    x: rect.x,
+                    y: rect.y,
+                    link_url: info.link_url.as_ref().map(|u| u.to_string()),
+                    image_url: info.image_url.as_ref().map(|u| u.to_string()),
+                    editable: flags
+                        .contains(servo::ContextMenuElementInformationFlags::EditableText),
+                    selection: flags.contains(servo::ContextMenuElementInformationFlags::Selection),
+                    can_go_back: webview.can_go_back(),
+                    can_go_forward: webview.can_go_forward(),
+                    extension_items: Vec::new(),
+                };
+                menu_info.extension_items = self.ext_menu_items(&menu_info);
+                self.emit(Event::ContextMenu { menu: menu_info });
                 self.controls
                     .borrow_mut()
                     .insert(id, PendingControl::ContextMenu(menu, engine_id, tab));

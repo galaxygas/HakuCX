@@ -1,0 +1,17 @@
+{
+  "manifest_version": 2,
+  "name": "__MSG_extName__",
+  "description": "__MSG_extDescription__",
+  "version": "1.0",
+  "default_locale": "en",
+  "icons": { "48": "icon48.png" },
+  "permissions": ["contextMenus", "storage", "tabs", "http://127.0.0.1/*"],
+  "background": { "scripts": ["background.js"], "persistent": true },
+  "content_scripts": [
+    { "matches": ["http://127.0.0.1/*"], "js": ["content.js"], "css": ["content.css"], "run_at": "document_end" }
+  ],
+  "browser_action": { "default_title": "Test Content (click to toggle the banner)", "default_icon": "icon48.png" },
+  "commands": {
+    "toggle-banner": { "suggested_key": { "default": "Alt+Shift+K" }, "description": "Toggle the test banner" }
+  }
+}
