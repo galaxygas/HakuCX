@@ -1,4 +1,4 @@
-﻿[workspace]
+[workspace]
 resolver = "3"
 members = ["crates/hakucx", "crates/haku-core", "crates/haku-release", "crates/haku-brand", "crates/haku-lights"]
 
@@ -52,7 +52,7 @@ reqwest = { version = "0.13", default-features = false, features = ["rustls", "b
 zip = { version = "9.0.5", default-features = false, features = ["deflate-flate2"] }
 # Pure-Rust deflate backend for zip.
 flate2 = { version = "1", default-features = false, features = ["rust_backend"] }
-sha2 = "0.10"
+sha2 = "0.11"
 regex = "1"
 # The password vault and sync bundles: XChaCha20-Poly1305 and Argon2id (RustCrypto).
 chacha20poly1305 = "0.10"
