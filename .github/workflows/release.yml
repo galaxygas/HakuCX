@@ -42,6 +42,16 @@ jobs:
           cache: pnpm
           cache-dependency-path: ui/pnpm-lock.yaml
 
+      - name: Install NSIS (installer builder)
+        shell: pwsh
+        run: |
+          # The runner image does not ship NSIS; Chocolatey does.
+          choco install nsis -y --no-progress
+          if ($LASTEXITCODE -ne 0) { throw "installing NSIS failed" }
+          $makensis = @("${env:ProgramFiles(x86)}\NSIS\makensis.exe", "$env:ProgramFiles\NSIS\makensis.exe") | Where-Object { Test-Path $_ } | Select-Object -First 1
+          if (-not $makensis) { throw "makensis.exe not found after installing NSIS" }
+          & $makensis /VERSION
+
       - name: Install GStreamer (audio and video)
         shell: pwsh
         run: ./packaging/windows/gstreamer.ps1 -Install
