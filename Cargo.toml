@@ -1,4 +1,4 @@
-﻿[workspace]
+[workspace]
 resolver = "3"
 members = ["crates/hakucx", "crates/haku-core", "crates/haku-release", "crates/haku-brand"]
 
@@ -58,7 +58,7 @@ regex = "1"
 chacha20poly1305 = "0.10"
 argon2 = "0.5"
 zeroize = "1"
-getrandom = "0.3"
+getrandom = "0.4"
 # Waiting on Windows Hello's asynchronous result.
 windows-future = "0.3"
 # Update signatures (minisign; the verifier and signer by its author).
