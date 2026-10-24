@@ -60,6 +60,8 @@ pub struct TabView {
     pub blocked: u32,
     pub crashed: Option<String>,
     pub audible: bool,
+    /// What the page plays (see `media.rs`).
+    pub media: Option<haku_core::ipc::MediaInfo>,
     pub content_manager: Option<Rc<UserContentManager>>,
     /// Pending `Transition` for the next committed navigation (typed URL vs link).
     pub next_transition: Transition,
@@ -82,6 +84,7 @@ impl TabView {
             blocked: 0,
             crashed: None,
             audible: false,
+            media: None,
             content_manager: None,
             next_transition: Transition::Link,
             last_input: None,
@@ -258,6 +261,8 @@ impl Browser {
             }
         }
         drop(views);
+        let shown: Vec<TabId> = visible.iter().flatten().cloned().collect();
+        self.defer(move |b| b.media_visibility_changed(shown));
         *self.pane_tabs.borrow_mut() = pane_tabs;
         self.resize_panes();
         self.apply_mute_state();
@@ -574,6 +579,7 @@ impl Browser {
             audible: view.is_some_and(|v| v.audible),
             blocked: view.map(|v| v.blocked).unwrap_or(0),
             crashed: view.and_then(|v| v.crashed.clone()),
+            media: view.and_then(|v| v.media.clone()),
         })
     }
 

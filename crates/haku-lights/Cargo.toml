@@ -1,0 +1,18 @@
+[package]
+name = "haku-lights"
+description = "GX Lights: drives RGB devices through Razer Chroma and OpenRGB"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+authors.workspace = true
+publish = false
+
+[dependencies]
+reqwest = { workspace = true }
+serde_json = { workspace = true }
+log = { workspace = true }
+
+[target.'cfg(windows)'.dependencies]
+windows = { workspace = true }

@@ -80,6 +80,9 @@ impl App {
         if let Some(browser) = &self.browser {
             browser.poll_background();
             browser.pump();
+            if let Some(spec) = browser.take_popout_request() {
+                open_popout(event_loop, browser, spec);
+            }
             // Hand the input and commands of this event to Servo now (like servoshell does),
             // instead of leaving them queued until the next wake-up; then handle whatever
             // that produced.
@@ -221,11 +224,19 @@ impl ApplicationHandler<AppEvent> for App {
         self.after_event(event_loop);
     }
 
-    fn window_event(&mut self, event_loop: &ActiveEventLoop, _id: WindowId, event: WindowEvent) {
+    fn window_event(&mut self, event_loop: &ActiveEventLoop, id: WindowId, event: WindowEvent) {
         let Some(browser) = self.browser.clone() else {
             return;
         };
         browser.servo.spin_event_loop();
+        if browser.is_popout_window(id) {
+            browser.popout_window_event(event);
+            self.after_event(event_loop);
+            return;
+        }
+        if id != browser.window.id() {
+            return;
+        }
         match event {
             WindowEvent::CloseRequested => {
                 if browser.should_confirm_quit() {
@@ -256,6 +267,41 @@ impl ApplicationHandler<AppEvent> for App {
             // Dropping the last reference to Servo makes it flush cookies and storage.
             drop(browser);
         }
+    }
+}
+
+/// Create the video pop-out window and its GL context, and hand them to the browser.
+fn open_popout(
+    event_loop: &ActiveEventLoop,
+    browser: &Browser,
+    spec: crate::browser::popout::PopoutSpec,
+) {
+    let (position, size) = browser.popout_placement(&spec);
+    let mut attributes = Window::default_attributes()
+        .with_title("HakuCX video")
+        .with_decorations(false)
+        .with_window_level(winit::window::WindowLevel::AlwaysOnTop)
+        .with_inner_size(size)
+        .with_min_inner_size(LogicalSize::new(240.0, 135.0))
+        .with_window_icon(app_icon(32));
+    if let Some(position) = position {
+        attributes = attributes.with_position(position);
+    }
+    let window = match event_loop.create_window(attributes) {
+        Ok(w) => w,
+        Err(e) => {
+            error!("could not create the pop-out window: {e}");
+            return;
+        }
+    };
+    let (Ok(display_handle), Ok(window_handle)) =
+        (event_loop.display_handle(), window.window_handle())
+    else {
+        return;
+    };
+    match WindowRenderingContext::new(display_handle, window_handle, window.inner_size()) {
+        Ok(context) => browser.open_popout(window, Rc::new(context), spec),
+        Err(e) => error!("could not create a GL context for the pop-out window: {e:?}"),
     }
 }
 

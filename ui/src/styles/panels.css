@@ -586,24 +586,117 @@ small.danger {
 .flow-panel {
   display: flex;
   flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  gap: 10px;
+  padding: 10px 12px 12px;
+}
+.flow-devices {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.flow-device {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  border-radius: 8px;
+  background: var(--hx-elev);
+  border: 1px solid var(--hx-line);
+  color: var(--hx-accent);
+}
+.flow-device .grow {
+  color: var(--hx-text);
+}
+.flow-pairing {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+}
+.flow-pairing .qr-box {
+  align-self: center;
+  width: 200px;
+  height: 200px;
+  padding: 6px;
+  border-radius: 8px;
+  background: #fff;
+}
+.flow-pairing .qr-box svg {
+  width: 100%;
+  height: 100%;
+}
+.flow-steps {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.flow-step {
+  display: flex;
+  gap: 8px;
+}
+.flow-step-n {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--hx-accent-soft);
+  color: var(--hx-accent);
+  font-size: 12px;
+  font-weight: 700;
 }
 .flow-list {
   display: flex;
   flex-direction: column;
   gap: 8px;
   flex: 1;
+  min-height: 0;
+  padding: 2px;
 }
 .flow-bubble {
-  align-self: flex-end;
   display: flex;
   flex-direction: column;
   gap: 4px;
-  max-width: 85%;
+  max-width: 88%;
   padding: 9px 12px;
+  user-select: text;
+}
+.flow-bubble.mine {
+  align-self: flex-end;
   border-radius: 12px 12px 2px 12px;
   background: var(--hx-accent-soft);
   border: 1px solid var(--hx-accent-dim);
-  user-select: text;
+}
+.flow-bubble.theirs {
+  align-self: flex-start;
+  border-radius: 12px 12px 12px 2px;
+  background: var(--hx-elev);
+  border: 1px solid var(--hx-line);
+}
+.flow-text {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.flow-file {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+.flow-remove {
+  margin-left: 6px;
+  opacity: 0;
+  color: var(--hx-dim);
+  vertical-align: middle;
+}
+.flow-bubble:hover .flow-remove {
+  opacity: 1;
+}
+.flow-composer {
+  gap: 4px;
 }
 
 /* ---------------------------------------------------------------- AI */

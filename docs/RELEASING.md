@@ -50,7 +50,7 @@ Running the workflow by hand (Actions → Release → Run workflow) builds the p
 
 ### Building packages locally
 
-You need Visual Studio 2022 with the C++ tools, and NSIS 3 for the installer (`winget install NSIS.NSIS`):
+You need Visual Studio 2022 with the C++ tools, GStreamer (`packaging/windows/gstreamer.ps1 -Install`; the packager finds it and ships its DLLs and licenses), and NSIS 3 for the installer (`winget install NSIS.NSIS`):
 
 ```bash
 powershell -ExecutionPolicy Bypass -File packaging/windows/package.ps1

@@ -591,7 +591,55 @@ pub enum Command {
     InstallUpdate,
     OpenCrashReports,
 
+    // ---- media
+    /// Control a tab's audio or video (miniplayer).
+    Media {
+        tab: TabId,
+        action: MediaAction,
+    },
+
+    // ---- My Flow
+    /// Show a QR code that connects a phone.
+    FlowPair,
+    FlowCancelPairing,
+    /// A note or link from this computer.
+    FlowSend {
+        text: String,
+    },
+    /// Send a tab's address (the active tab when `None`).
+    FlowSendPage {
+        tab: Option<TabId>,
+    },
+    /// Pick a file and send it.
+    FlowSendFile,
+    /// Open a link or file from My Flow.
+    FlowOpen {
+        id: String,
+    },
+    /// Show a received file in its folder.
+    FlowShowFile {
+        id: String,
+    },
+    FlowRemove {
+        id: String,
+    },
+    FlowClear,
+    /// Disconnect a phone (it must scan a new QR code to connect again).
+    FlowForgetDevice {
+        device: String,
+    },
+    /// The My Flow panel is open: clear the unread count.
+    FlowSeen,
+
+    // ---- GX Lights
+    /// Try to reach Razer Chroma and OpenRGB again now.
+    LightsReconnect,
+
     // ---- misc
+    /// Put text on the system clipboard (the UI's own clipboard API is off in Servo).
+    CopyText {
+        text: String,
+    },
     Panic,
     PlaySound {
         sound: String,
@@ -664,6 +712,43 @@ pub struct TabMeta {
     pub audible: bool,
     pub blocked: u32,
     pub crashed: Option<String>,
+    /// The page's audio or video, for the miniplayer.
+    pub media: Option<MediaInfo>,
+}
+
+/// What a tab is playing (its most recent audio or video element).
+#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize, TS)]
+#[serde(rename_all = "camelCase")]
+#[ts(export)]
+pub struct MediaInfo {
+    pub paused: bool,
+    pub video: bool,
+    /// From the page's Media Session, when it sets one.
+    pub title: String,
+    pub artist: String,
+    pub album: String,
+    /// `https:` image URL.
+    pub artwork: Option<String>,
+    pub has_prev: bool,
+    pub has_next: bool,
+    /// A video that can play in the pop-out window (one with a plain web address).
+    pub poppable: bool,
+    /// Playing in the pop-out window right now.
+    pub popped: bool,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize, TS)]
+#[serde(rename_all = "kebab-case")]
+#[ts(export)]
+pub enum MediaAction {
+    Play,
+    Pause,
+    Next,
+    Prev,
+    /// Move the tab's video into the pop-out window.
+    PopOut,
+    /// Bring a popped-out video back to its tab.
+    Return,
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize, TS)]
@@ -743,6 +828,52 @@ pub struct UpdateStatus {
     pub progress: f32,
     pub message: String,
     pub last_check: Option<i64>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize, TS)]
+#[serde(rename_all = "camelCase")]
+#[ts(export)]
+pub struct FlowStatus {
+    /// `off` (My Flow is turned off), `ready`, or `unavailable` (see `message`).
+    pub state: String,
+    pub message: String,
+    pub entries: Vec<crate::flow::FlowEntry>,
+    pub devices: Vec<crate::flow::FlowDevice>,
+    /// The address a phone opens (shown as a QR code) while pairing.
+    pub pairing: Option<FlowPairing>,
+    /// Where phones reach this computer (`192.168.1.5:47652`), while the server runs.
+    pub address: Option<String>,
+    pub unread: u32,
+}
+
+#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize, TS)]
+#[serde(rename_all = "camelCase")]
+#[ts(export)]
+pub struct FlowPairing {
+    pub url: String,
+    pub expires: i64,
+}
+
+/// One way GX Lights reaches devices (Razer Chroma or OpenRGB).
+#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize, TS)]
+#[serde(rename_all = "camelCase")]
+#[ts(export)]
+pub struct LightLink {
+    /// `off` (not wanted), `connecting`, `connected` or `unavailable` (see `message`).
+    pub state: String,
+    /// Device names (OpenRGB) or device types (Razer) currently lit.
+    pub devices: Vec<String>,
+    pub message: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize, TS)]
+#[serde(rename_all = "camelCase")]
+#[ts(export)]
+pub struct LightsStatus {
+    pub razer: LightLink,
+    pub openrgb: LightLink,
+    /// The sound level meter for the music visualizer could be opened.
+    pub meter: bool,
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize, TS)]
@@ -1205,6 +1336,12 @@ pub enum Event {
     },
     Update {
         status: UpdateStatus,
+    },
+    Lights {
+        status: LightsStatus,
+    },
+    Flow {
+        status: FlowStatus,
     },
     Pinboards {
         pinboards: Pinboards,

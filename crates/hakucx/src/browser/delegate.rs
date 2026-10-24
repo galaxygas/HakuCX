@@ -21,6 +21,10 @@ use super::{Browser, IPC_PREFIX, PAGE_PREFIX, page_scripts};
 impl WebViewDelegate for Browser {
     fn notify_new_frame_ready(&self, webview: WebView) {
         log::trace!("frame ready (ui: {})", self.is_ui(&webview));
+        if self.is_popout(&webview) {
+            self.popout_frame_ready();
+            return;
+        }
         self.window.request_redraw();
     }
 
@@ -227,6 +231,11 @@ impl WebViewDelegate for Browser {
             }
             return;
         }
+        // The pop-out window loads its own page.
+        if self.is_popout(&webview) && url.scheme() == "haku" && url.host_str() == Some("popout") {
+            request.allow();
+            return;
+        }
         // Web content may never navigate to internal pages.
         if is_internal(url.as_str()) {
             warn!("blocked a page navigating to an internal URL");
@@ -386,6 +395,7 @@ impl WebViewDelegate for Browser {
                 .to_owned(),
             kind: "notification".into(),
         });
+        self.lights_signal(haku_lights::effects::Signal::Notification);
     }
 
     fn show_console_message(&self, webview: WebView, level: ConsoleLogLevel, message: String) {
@@ -411,14 +421,25 @@ impl WebViewDelegate for Browser {
             return;
         }
         if let Some(payload) = message.strip_prefix(PAGE_PREFIX) {
+            let payload = payload.to_owned();
             if let Some(tab) = self.tab_for_webview(&webview) {
-                let payload = payload.to_owned();
                 self.defer(move |b| b.handle_page_message(&tab, &payload));
+            } else if self.is_popout(&webview) {
+                self.defer(move |b| b.handle_popout_message(&payload));
+            } else if let Some(panel) = self.panel_for_webview(&webview) {
+                // Panels only report media (the Player's auto-pause).
+                if let Ok(report) = serde_json::from_str::<super::media::MediaReport>(&payload)
+                    && payload.contains(r#""type":"media""#)
+                {
+                    self.defer(move |b| b.panel_media_report(&panel, report));
+                }
             }
             return;
         }
         if self.is_ui(&webview) {
             info!("[ui {level:?}] {message}");
+        } else if self.is_popout(&webview) {
+            info!("[pop-out {level:?}] {message}");
         }
     }
 }

@@ -25,4 +25,10 @@ Extensions you install make their own requests, like any page; HakuCX does not a
 
 Folder sync makes no network requests: HakuCX reads and writes encrypted files in the folder you choose, and your sync program (OneDrive, Dropbox, Syncthing, ...) moves them. The password manager makes none either.
 
-Not built yet, and listed here when they land: GX Lights (local only: Razer Chroma SDK on `localhost:54235`, OpenRGB on `127.0.0.1:6742`), MQTT smart home (your broker).
+GX Lights talk only to this computer or your network: Razer Synapse's Chroma SDK on `localhost:54235` (and the session address it returns, which must also be on `localhost`), and the OpenRGB SDK server you set (default `127.0.0.1:6742`), only while GX Lights and that device type are on (Settings → Features → GX Lights). The music visualizer reads Windows' output level meter; no audio is recorded.
+
+My Flow does not use the internet: it listens on your local network (port 47652, or another free port) only while it is on and a phone is paired or a QR code is showing, and answers only that phone (Settings → Synchronization → My Flow). See `docs/MY-FLOW.md`.
+
+The video pop out loads the video's own address from the site it came from, like the page did.
+
+Not built yet, and listed here when they land: MQTT smart home (your broker).

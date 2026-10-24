@@ -18,7 +18,7 @@ These come from Servo itself and cannot be fixed inside HakuCX:
 | Limit | Effect |
 |---|---|
 | No EME / Widevine DRM | Netflix, Disney+, Spotify Web and other DRM video/audio will not play. |
-| No Media Source Extensions | Adaptive-streaming players (including parts of YouTube) may not play. |
+| No Media Source Extensions | Players that build their stream in script (YouTube, Twitch, most streaming and web music sites) do not play. Plain `<video>`/`<audio>` (MP4, WebM, Ogg, MP3; H.264, VP8/VP9, AAC, Opus) plays. See [MEDIA.md](docs/MEDIA.md). |
 | No content-process sandbox on Windows | A Servo bug that leads to code execution is not contained by an OS sandbox. See [SECURITY.md](SECURITY.md). |
 | No isolated worlds | Extension content scripts share the page's JavaScript world. See [SECURITY.md](SECURITY.md) and [EXTENSIONS.md](docs/EXTENSIONS.md). |
 | ~68% Web Platform Tests pass rate | Some sites render incorrectly. Reports help: please file them. |
@@ -36,9 +36,14 @@ Requirements:
 - LLVM/Clang 19+ (set `LIBCLANG_PATH`, e.g. `C:\Program Files\LLVM\bin`)
 - CMake
 - Node.js 22+ and pnpm (for the UI)
+- GStreamer 1.28 MSVC x86_64 with development files, for audio and video (`packaging\windows\gstreamer.ps1 -Install` installs it; see [MEDIA.md](docs/MEDIA.md))
 
 ```bash
 winget install Microsoft.VisualStudio.2022.BuildTools LLVM.LLVM Kitware.CMake
+```
+
+```powershell
+packaging\windows\gstreamer.ps1
 ```
 
 ```bash
@@ -56,7 +61,8 @@ The first build compiles all of Servo (about 600 crates) and takes a while on a 
 | Path | What it is |
 |---|---|
 | `crates/hakucx` | The browser binary: window, Servo embedding, compositor, input routing, IPC |
-| `crates/haku-core` | Engine-independent state: settings, themes, tabs/workspaces/islands, persistence, the IPC protocol |
+| `crates/haku-core` | Engine-independent state: settings, themes, tabs/workspaces/islands, persistence, the IPC protocol, My Flow's protocol |
+| `crates/haku-lights` | GX Lights: effects, Razer Chroma and OpenRGB clients, the sound level meter |
 | `ui/` | The browser interface (React + TypeScript), rendered by Servo in a transparent layer over the pages |
 | `docs/` | Architecture, research, agent guidance |
 
@@ -71,9 +77,9 @@ See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for how the pieces fit together
 | M2 | Core browser: sessions, workspaces, islands, history, bookmarks, Speed Dial, downloads | done |
 | M3 | GX-fidelity UI: tab strip, sidebar, Easy Setup, settings, themes, wallpapers | done |
 | M4 | Ad/tracker blocking, privacy, permissions, proxy/VPN, downloads | mostly done (third-party cookie control and DoH need engine support) |
-| M5 | GX Control (kernel limits), Cleaner, shaders, web mods, sounds, lights, player, video tools | in progress: GX Lights, video pop-out and the miniplayer remain |
+| M5 | GX Control (kernel limits), Cleaner, shaders, web mods, sounds, lights, player, video tools | done (GX Lights, audio/video playback, video pop out and the miniplayer: see [MEDIA.md](docs/MEDIA.md)) |
 | M6 | WebExtensions runtime (Chrome MV2/MV3, Firefox) | done (see [EXTENSIONS.md](docs/EXTENSIONS.md) for what each API supports) |
-| M7 | Mods, Corner, AI, password manager, sync | done (see [PASSWORDS-AND-SYNC.md](docs/PASSWORDS-AND-SYNC.md)); My Flow (phone pairing) remains |
+| M7 | Mods, Corner, AI, password manager, sync, My Flow | done (see [PASSWORDS-AND-SYNC.md](docs/PASSWORDS-AND-SYNC.md) and [MY-FLOW.md](docs/MY-FLOW.md)) |
 | M8 | Installer, updater, default-browser integration | done (see [RELEASING.md](docs/RELEASING.md)) |
 
 ## Contributing

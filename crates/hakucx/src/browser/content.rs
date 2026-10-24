@@ -35,8 +35,12 @@ enum PageMessage {
     DownloadError {
         reason: String,
     },
-    Media {
-        playing: bool,
+    Media(super::media::MediaReport),
+    /// Pop the page's video out (its button, the miniplayer, or auto pop out).
+    Popout(super::media::PopoutRequest),
+    /// A pop out was asked for, but the page has no video with a web address.
+    PopoutUnavailable {
+        reason: String,
     },
     /// A login form was submitted (the password manager offers to save it).
     LoginSubmit {
@@ -277,12 +281,9 @@ impl Browser {
                     webview.evaluate_javascript(page_scripts::append_cosmetic_script(&css), |_| {});
                 }
             }
-            PageMessage::Media { playing } => {
-                if let Some(view) = self.views.borrow_mut().get_mut(tab) {
-                    view.audible = playing;
-                }
-                self.after_tab_update(tab);
-            }
+            PageMessage::Media(report) => self.tab_media_report(tab, report),
+            PageMessage::Popout(request) => self.tab_popout_request(tab, request),
+            PageMessage::PopoutUnavailable { reason } => self.popout_unavailable(&reason),
         }
     }
 
@@ -423,6 +424,7 @@ impl Browser {
             Ok(()) => {
                 record.received_bytes = bytes.len() as u64;
                 record.state = DownloadState::Completed;
+                self.lights_signal(haku_lights::effects::Signal::DownloadDone);
             }
             Err(e) => record.state = DownloadState::Failed(e.to_string()),
         }
@@ -486,6 +488,7 @@ impl Browser {
                         d.total_bytes = Some(d.received_bytes);
                         d.ended_at = Some(haku_core::now_ms());
                         open_when_done = Some(path.clone());
+                        self.lights_signal(haku_lights::effects::Signal::DownloadDone);
                     }
                     self.download_engine.forget(&id);
                     drop(downloads);
@@ -662,6 +665,7 @@ impl Browser {
     pub(crate) fn set_page_fullscreen(&self, on: bool) {
         self.window
             .set_fullscreen(on.then_some(winit::window::Fullscreen::Borderless(None)));
+        self.lights_fullscreen(on);
         self.emit(Event::Fullscreen { on });
     }
 }

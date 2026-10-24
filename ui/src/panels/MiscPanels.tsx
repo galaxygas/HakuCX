@@ -8,7 +8,7 @@ import { Icon } from "../components/Icon";
 import { onEvent, send } from "../ipc/bridge";
 import type { Pinboard } from "../ipc/generated/Pinboard";
 import type { PinItem } from "../ipc/generated/PinItem";
-import { clsx, hostOf, timeOfDay } from "../lib/util";
+import { clsx, hostOf } from "../lib/util";
 import { useStore } from "../state/store";
 import { Input } from "../components/Field";
 
@@ -388,65 +388,6 @@ export function RewardsPanel() {
           </div>
         );
       })}
-    </div>
-  );
-}
-
-// ------------------------------------------------------------------ My Flow (local)
-
-type FlowEntry = { id: string; kind: "link" | "note"; text: string; url?: string; at: number };
-
-function readFlow(): FlowEntry[] {
-  try {
-    return JSON.parse(localStorage.getItem("hx-flow") ?? "[]") as FlowEntry[];
-  } catch {
-    return [];
-  }
-}
-
-export function FlowPanel() {
-  const [entries, setEntries] = useState<FlowEntry[]>(readFlow);
-  const [text, setText] = useState("");
-  const save = (next: FlowEntry[]) => {
-    setEntries(next);
-    try {
-      localStorage.setItem("hx-flow", JSON.stringify(next.slice(0, 200)));
-    } catch {
-      // Not persisted.
-    }
-  };
-  return (
-    <div className="panel-scroll flow-panel">
-      <p className="note">My Flow keeps links and notes for yourself. Sending them to your other devices uses folder sync (Settings &gt; Synchronization).</p>
-      <div className="flow-list">
-        {entries.map((e) => (
-          <div key={e.id} className={clsx("flow-bubble", e.kind)}>
-            {e.kind === "link" && e.url ? (
-              <button className="pin-link" onClick={() => send({ type: "navigate", tab: null, input: e.url!, disposition: "new-tab" })}>
-                <Icon name="link" size={13} />
-                <span className="ellipsis">{e.text}</span>
-              </button>
-            ) : (
-              <span>{e.text}</span>
-            )}
-            <small className="dim">{timeOfDay(e.at)}</small>
-          </div>
-        ))}
-      </div>
-      <div className="row">
-        <button className="icon-btn" title="Send the current page" onClick={() => {
-          const page = activePage();
-          if (page) save([{ id: newId(), kind: "link", text: page.title || page.url, url: page.url, at: Date.now() }, ...entries]);
-        }}>
-          <Icon name="link" size={16} />
-        </button>
-        <Input className="text-input" placeholder="Type a note" value={text} onChange={(e) => setText(e.target.value)} onKeyDown={(e) => {
-          if (e.key === "Enter" && text.trim()) {
-            save([{ id: newId(), kind: "note", text: text.trim(), at: Date.now() }, ...entries]);
-            setText("");
-          }
-        }} />
-      </div>
     </div>
   );
 }

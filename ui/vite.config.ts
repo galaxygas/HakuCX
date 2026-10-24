@@ -17,6 +17,11 @@ export default defineConfig({
     modulePreload: false,
     assetsInlineLimit: 0,
     sourcemap: false,
+    rollupOptions: {
+      // index.html: the browser UI. flow.html: the My Flow page HakuCX serves to phones on the
+      // local network (see crates/hakucx/src/flow_server.rs).
+      input: { main: "index.html", flow: "flow.html" },
+    },
   },
   test: {
     environment: "node",

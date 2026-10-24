@@ -8,6 +8,7 @@ import { sidebarItem, type SidebarItem } from "../lib/catalog";
 import { clsx } from "../lib/util";
 import { noteSidebarUse } from "../panels/CleanerPanel";
 import { openInternal, useStore } from "../state/store";
+import { SidebarMiniplayer } from "./Miniplayer";
 
 export function Sidebar() {
   const settings = useStore((s) => s.settings);
@@ -70,6 +71,7 @@ export function Sidebar() {
         })}
       </div>
       <div className="sidebar-bottom">
+        <SidebarMiniplayer />
         <button className={clsx("sidebar-item", drawer === "sidebar-setup" && "active")} title="Sidebar setup" onClick={() => setDrawer(drawer === "sidebar-setup" ? null : "sidebar-setup")}>
           <Icon name="ellipsis" size={19} />
         </button>

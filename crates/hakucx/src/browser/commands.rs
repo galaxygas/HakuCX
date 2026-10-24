@@ -161,6 +161,7 @@ impl Browser {
                 relative_to,
             } => {
                 let url = url.unwrap_or_else(|| START_URL.to_owned());
+                self.lights_signal(haku_lights::effects::Signal::NewTab);
                 let placement = if relative_to.is_some() {
                     Placement::After
                 } else {
@@ -784,6 +785,20 @@ impl Browser {
             Command::UnregisterBrowser => self.unregister_browser(),
             Command::CheckForUpdates => self.check_for_updates(),
             Command::InstallUpdate => self.install_update(),
+            Command::LightsReconnect => self.lights_reconnect(),
+            Command::CopyText { text } => self.copy_to_clipboard(&text),
+            Command::Media { tab, action } => self.media_command(&tab, action),
+            Command::FlowPair => self.flow_pair(),
+            Command::FlowCancelPairing => self.flow_cancel_pairing(),
+            Command::FlowSend { text } => self.flow_send(text),
+            Command::FlowSendPage { tab } => self.flow_send_page(tab),
+            Command::FlowSendFile => self.flow_send_file(),
+            Command::FlowOpen { id } => self.flow_open(&id),
+            Command::FlowShowFile { id } => self.flow_show_file(&id),
+            Command::FlowRemove { id } => self.flow_remove(&id),
+            Command::FlowClear => self.flow_clear(),
+            Command::FlowForgetDevice { device } => self.flow_forget_device(&device),
+            Command::FlowSeen => self.flow_seen(),
             Command::OpenCrashReports => self.open_crash_reports(),
 
             // ---------------------------------------------------------- misc
@@ -1038,18 +1053,20 @@ impl Browser {
         }
     }
 
+    /// Write the system clipboard. Servo keeps its asynchronous clipboard API
+    /// (`dom_async_clipboard_enabled`) off, and turning it on would also let every web page
+    /// read the clipboard without asking, so the browser writes it itself.
     pub(crate) fn copy_to_clipboard(&self, text: &str) {
-        // The UI shell owns a focused document and can use the async clipboard API; doing it
-        // there keeps one clipboard path.
-        let quoted = serde_json::to_string(text).unwrap_or_default();
-        if let Some(ui) = self.ui_webview() {
-            ui.evaluate_javascript(
-                format!("window.__haku && window.__haku.copy({quoted})"),
-                |_| {},
-            );
-        }
-        if self.settings.borrow().accessibility.copy_confirmations {
-            self.toast("Copied to clipboard", "info");
+        match arboard::Clipboard::new().and_then(|mut c| c.set_text(text.to_owned())) {
+            Ok(()) => {
+                if self.settings.borrow().accessibility.copy_confirmations {
+                    self.toast("Copied to clipboard", "info");
+                }
+            }
+            Err(e) => {
+                warn!("clipboard: {e}");
+                self.toast("Could not copy to the clipboard.", "error");
+            }
         }
     }
 

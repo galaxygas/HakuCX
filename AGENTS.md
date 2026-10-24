@@ -32,6 +32,9 @@ This file is the contract for anyone, human or AI, changing HakuCX. Read it befo
 | Windows integration, single instance, crash reports | `crates/hakucx/src/os_integration.rs` (registry keys must match `packaging/windows/installer.nsi`), `instance.rs`, `crash.rs` |
 | Updater, release packaging | `crates/haku-core/src/update.rs`, `crates/hakucx/src/browser/system.rs`, `crates/haku-release`, `packaging/windows/`, `.github/workflows/release.yml`; see `docs/RELEASING.md` |
 | Password vault, sync bundles | `crates/haku-core/src/vault.rs`, `sync.rs`; browser side `crates/hakucx/src/browser/vault.rs`, `sync.rs`, `os_secrets.rs`; keep `docs/PASSWORDS-AND-SYNC.md` in step |
+| GX Lights | `crates/haku-lights` (effects, Razer, OpenRGB, meter); driver thread `crates/hakucx/src/lights.rs`; browser glue `browser/gx_lights.rs` |
+| Media: miniplayer, pop out, page media script | `crates/hakucx/src/browser/media.rs`, `media.js`, `popout.rs`, `popout/`; GStreamer files in `crates/hakucx/build.rs`; see `docs/MEDIA.md` |
+| My Flow | `crates/haku-core/src/flow.rs` (protocol), `crates/hakucx/src/flow_server.rs`, `browser/flow.rs`, phone page `ui/flow.html` + `ui/src/flow/`; keep `docs/MY-FLOW.md` in step |
 | Extension API methods and runtime | `crates/hakucx/src/browser/ext_api.rs`, `browser/extensions.rs`, `extensions/api.js`; keep `docs/EXTENSIONS.md` in step |
 
 ## Build and check
@@ -60,7 +63,7 @@ pnpm -C ui lint
 pnpm -C ui test
 ```
 
-Building `hakucx` compiles Servo; see the README for Windows prerequisites.
+Building `hakucx` compiles Servo; see the README for Windows prerequisites. It also needs GStreamer: run `packaging\windows\gstreamer.ps1` in PowerShell first (`-Install` the first time).
 
 ## Style
 

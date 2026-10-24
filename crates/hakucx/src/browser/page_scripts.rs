@@ -16,10 +16,37 @@ use servo::{UserContentManager, UserScript};
 /// Installed into every page webview at creation.
 /// Login and form detection for the password manager (it never fills anything by itself).
 const AUTOFILL: &str = include_str!("autofill.js");
+/// Media state for the miniplayer and the video pop-out button (see the file's header).
+const MEDIA: &str = include_str!("media.js");
+
+/// The media script, with the pop-out button on or off.
+pub fn media_script(popout_button: bool) -> String {
+    MEDIA.replace(
+        "__HAKU_POPOUT_BUTTON__",
+        if popout_button { "true" } else { "false" },
+    )
+}
+
+/// Turn the pop-out button on or off in a page that is already open.
+pub fn media_button_script(on: bool) -> String {
+    format!("window.__hakuMedia && window.__hakuMedia('button', {on});")
+}
+
+/// Ask a page's media script to do `action` (`play`, `pause`, `next`, `prev`, `popout`,
+/// `return`, `closed`), with `arg` as JSON.
+pub fn media_action_script(action: &str, arg: &serde_json::Value) -> String {
+    let action = serde_json::to_string(action).unwrap_or_else(|_| "\"\"".into());
+    format!("window.__hakuMedia && window.__hakuMedia({action}, {arg});")
+}
 
 pub fn install(manager: &Rc<UserContentManager>, settings: &haku_core::settings::Settings) {
     manager.add_script(Rc::new(UserScript::new(BOOTSTRAP.to_owned(), None)));
     manager.add_script(Rc::new(UserScript::new(AUTOFILL.to_owned(), None)));
+    let video = &settings.video;
+    manager.add_script(Rc::new(UserScript::new(
+        media_script(video.popout && video.video_pickup),
+        None,
+    )));
     let privacy = privacy_signals(
         settings.privacy.do_not_track,
         settings.privacy.global_privacy_control,
@@ -43,7 +70,7 @@ pub fn privacy_signals(dnt: bool, gpc: bool) -> String {
     s
 }
 
-/// Downloads for `<a download>` and media state reporting.
+/// Downloads for `<a download>`, the extension content-script relay and generic element hiding.
 const BOOTSTRAP: &str = r#"(() => {
   if (window.__hakuBoot) return;
   Object.defineProperty(window, "__hakuBoot", { value: true });
@@ -98,17 +125,6 @@ const BOOTSTRAP: &str = r#"(() => {
       post({ type: "download", url: a.href, filename });
     }
   }, true);
-  let playing = 0;
-  const report = () => post({ type: "media", playing: playing > 0 });
-  document.addEventListener("playing", (e) => {
-    const el = e.target;
-    if (!el.__hakuPlaying && !el.muted) { el.__hakuPlaying = true; playing++; report(); }
-    if (window.__hakuMuted) el.muted = true;
-  }, true);
-  const stop = (e) => { const el = e.target; if (el.__hakuPlaying) { el.__hakuPlaying = false; playing = Math.max(0, playing - 1); report(); } };
-  document.addEventListener("pause", stop, true);
-  document.addEventListener("ended", stop, true);
-  document.addEventListener("emptied", stop, true);
   // Generic element hiding: report class and id names the page uses (each once) so the
   // browser can answer with the matching hide rules. Names never leave the browser.
   const seenClasses = new Set(), seenIds = new Set();

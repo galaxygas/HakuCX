@@ -20,6 +20,8 @@ import type { LoginInfo } from "../ipc/generated/LoginInfo";
 import type { SyncStatus } from "../ipc/generated/SyncStatus";
 import type { SystemInfo } from "../ipc/generated/SystemInfo";
 import type { UpdateStatus } from "../ipc/generated/UpdateStatus";
+import type { LightsStatus } from "../ipc/generated/LightsStatus";
+import type { FlowStatus } from "../ipc/generated/FlowStatus";
 import type { VaultStatus } from "../ipc/generated/VaultStatus";
 import type { Event } from "../ipc/generated/Event";
 import type { Metrics } from "../ipc/generated/Metrics";
@@ -36,7 +38,7 @@ import type { ThemeInfo } from "../ipc/generated/ThemeInfo";
 import type { Visit } from "../ipc/generated/Visit";
 import { onEvent, send } from "../ipc/bridge";
 
-export type Popup = "downloads" | "extensions" | "profile" | "site-info" | "blocked" | "main-menu" | "workspaces" | "passwords" | null;
+export type Popup = "media" | "downloads" | "extensions" | "profile" | "site-info" | "blocked" | "main-menu" | "workspaces" | "passwords" | null;
 export type Drawer = "easy-setup" | "sidebar-setup" | null;
 
 export type Menu =
@@ -130,6 +132,8 @@ type State = {
   sync: SyncStatus | null;
   system: SystemInfo | null;
   update: UpdateStatus | null;
+  lights: LightsStatus | null;
+  flow: FlowStatus | null;
 
   panel: string | null;
   popup: Popup;
@@ -218,6 +222,8 @@ export const useStore = create<State & Actions>((set, get) => ({
   sync: null,
   system: null,
   update: null,
+  lights: null,
+  flow: null,
 
   panel: null,
   popup: null,
@@ -408,6 +414,12 @@ export const useStore = create<State & Actions>((set, get) => ({
         break;
       case "system":
         set({ system: event.info });
+        break;
+      case "lights":
+        set({ lights: event.status });
+        break;
+      case "flow":
+        set({ flow: event.status });
         break;
       case "update": {
         const before = get().update?.state;
