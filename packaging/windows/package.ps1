@@ -86,6 +86,10 @@ Write-Host "Portable: $zip"
 
 if (-not $SkipInstaller) {
   $makensis = (Get-Command makensis -ErrorAction SilentlyContinue).Source
+  if (-not $makensis) {
+    $makensis = @("${env:ProgramFiles(x86)}\NSIS\makensis.exe", "$env:ProgramFiles\NSIS\makensis.exe") |
+      Where-Object { Test-Path $_ } | Select-Object -First 1
+  }
   if (-not $makensis) { $makensis = "${env:ProgramFiles(x86)}\NSIS\makensis.exe" }
   if (-not (Test-Path $makensis)) { throw "NSIS (makensis) not found: install NSIS 3 or pass -SkipInstaller" }
   $setup = "$dist\HakuCX-Setup-$version-x64.exe"
