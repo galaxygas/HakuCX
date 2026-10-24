@@ -1,4 +1,4 @@
-﻿[workspace]
+[workspace]
 resolver = "3"
 members = ["crates/hakucx", "crates/haku-core", "crates/haku-release", "crates/haku-brand", "crates/haku-lights"]
 
@@ -63,7 +63,7 @@ getrandom = "0.3"
 windows-future = "0.3"
 # Update signatures (minisign; the verifier and signer by its author).
 minisign-verify = "0.2"
-minisign = "0.7"
+minisign = "0.10"
 # Signature checks for .crx packages; the same library rustls already builds.
 aws-lc-rs = { version = "1.18", features = ["prebuilt-nasm"] }
 # Same major version as Servo's, so cookies can be handed to its cookie store.
