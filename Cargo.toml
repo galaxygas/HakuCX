@@ -1,4 +1,4 @@
-﻿[workspace]
+[workspace]
 resolver = "3"
 members = ["crates/hakucx", "crates/haku-core", "crates/haku-release", "crates/haku-brand"]
 
@@ -62,7 +62,7 @@ getrandom = "0.3"
 # Waiting on Windows Hello's asynchronous result.
 windows-future = "0.3"
 # Update signatures (minisign; the verifier and signer by its author).
-minisign-verify = "0.2"
+minisign-verify = "0.3"
 minisign = "0.7"
 # Signature checks for .crx packages; the same library rustls already builds.
 aws-lc-rs = { version = "1.18", features = ["prebuilt-nasm"] }
