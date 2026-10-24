@@ -1,4 +1,4 @@
-﻿[workspace]
+[workspace]
 resolver = "3"
 members = ["crates/hakucx", "crates/haku-core", "crates/haku-release", "crates/haku-brand", "crates/haku-lights"]
 
@@ -37,7 +37,7 @@ include_dir = "0.7"
 ts-rs = { version = "12", features = ["serde-json-impl"] }
 dirs = "7"
 image = { version = "0.25", default-features = false, features = ["png", "jpeg"] }
-base64 = "0.22"
+base64 = "0.23"
 rfd = "0.17"
 open = "5"
 # Thread-safe engine (no "single-thread"), so filter engines can be built off the UI thread.
