@@ -1,0 +1,18 @@
+[package]
+name = "haku-release"
+description = "HakuCX release tooling: the update signing key and installer signatures"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+authors.workspace = true
+publish = false
+
+[dependencies]
+minisign = { workspace = true }
+haku-core = { workspace = true }
+haku-brand = { workspace = true }
+
+[dev-dependencies]
+tempfile = { workspace = true }

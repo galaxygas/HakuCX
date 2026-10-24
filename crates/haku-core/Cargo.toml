@@ -32,6 +32,8 @@ chacha20poly1305 = { workspace = true }
 argon2 = { workspace = true }
 zeroize = { workspace = true }
 getrandom = { workspace = true }
+minisign-verify = { workspace = true }
 
 [dev-dependencies]
 tempfile = { workspace = true }
+minisign = { workspace = true }

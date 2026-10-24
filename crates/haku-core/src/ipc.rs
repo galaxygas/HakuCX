@@ -581,6 +581,16 @@ pub enum Command {
     /// Stop syncing and forget the passphrase on this device.
     SyncDisconnect,
 
+    // ---- Windows integration and updates
+    /// Register HakuCX with Windows as a browser and open Windows' default-apps settings.
+    MakeDefaultBrowser,
+    /// Remove HakuCX's browser registration from Windows.
+    UnregisterBrowser,
+    CheckForUpdates,
+    /// Run the downloaded, verified installer and restart.
+    InstallUpdate,
+    OpenCrashReports,
+
     // ---- misc
     Panic,
     PlaySound {
@@ -701,6 +711,38 @@ pub struct ContextMenuInfo {
     /// Items extensions added with `contextMenus`/`menus` that apply to this click.
     #[serde(default)]
     pub extension_items: Vec<ExtMenuItem>,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, TS)]
+#[serde(rename_all = "camelCase")]
+#[ts(export)]
+pub struct SystemInfo {
+    /// Windows' choice for web links is HakuCX.
+    pub is_default: bool,
+    /// This copy is registered with Windows as a browser.
+    pub registered: bool,
+    /// Installed by the HakuCX installer (as opposed to portable or built from source).
+    pub installed: bool,
+    /// Running from the portable zip (data kept next to the program).
+    pub portable: bool,
+    pub windows: bool,
+    pub crash_reports: u32,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, TS)]
+#[serde(rename_all = "camelCase")]
+#[ts(export)]
+pub struct UpdateStatus {
+    /// `unavailable` (no update key in this build), `idle`, `checking`, `up-to-date`,
+    /// `available` (portable copies: download it yourself), `downloading`, `ready` or `error`.
+    pub state: String,
+    pub current: String,
+    pub version: Option<String>,
+    pub page: Option<String>,
+    /// 0..1 while downloading.
+    pub progress: f32,
+    pub message: String,
+    pub last_check: Option<i64>,
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize, TS)]
@@ -1156,6 +1198,13 @@ pub enum Event {
     AutofillHide,
     Sync {
         status: SyncStatus,
+    },
+    /// How HakuCX is set up in Windows.
+    System {
+        info: SystemInfo,
+    },
+    Update {
+        status: UpdateStatus,
     },
     Pinboards {
         pinboards: Pinboards,

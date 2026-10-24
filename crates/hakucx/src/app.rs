@@ -62,14 +62,17 @@ pub struct App {
     waker: Waker,
     startup: Option<Startup>,
     browser: Option<Rc<Browser>>,
+    /// The profile folder this process is the running instance of (see `instance.rs`).
+    instance_dir: Option<PathBuf>,
 }
 
 impl App {
-    pub fn new(waker: Waker, startup: Startup) -> Self {
+    pub fn new(waker: Waker, startup: Startup, instance_dir: Option<PathBuf>) -> Self {
         Self {
             waker,
             startup: Some(startup),
             browser: None,
+            instance_dir,
         }
     }
 
@@ -98,44 +101,9 @@ impl App {
 
 /// Frame interval while a webview animates (about 120 Hz, Servo's own refresh rate).
 const FRAME_INTERVAL: std::time::Duration = std::time::Duration::from_millis(8);
-/// HakuCX's window icon, drawn in code: a rounded square with a violet-to-cyan gradient and a
-/// white "H" with a cut corner (the GX notch).
+/// HakuCX's window icon (see `haku_brand`).
 pub fn app_icon(size: u32) -> Option<Icon> {
-    let mut rgba = vec![0u8; (size * size * 4) as usize];
-    let s = size as f32;
-    let radius = s * 0.22;
-    for y in 0..size {
-        for x in 0..size {
-            let (fx, fy) = (x as f32 + 0.5, y as f32 + 0.5);
-            // Rounded-rect coverage.
-            let dx = (radius - fx).max(fx - (s - radius)).max(0.0);
-            let dy = (radius - fy).max(fy - (s - radius)).max(0.0);
-            let corner = (dx * dx + dy * dy).sqrt();
-            let inside = (radius - corner + 0.5).clamp(0.0, 1.0);
-            // Notch: cut the bottom-right corner.
-            let notch = if fx + fy > s * 1.72 { 0.0 } else { 1.0 };
-            let alpha = inside * notch;
-            let t = (fx + fy) / (2.0 * s);
-            let (r, g, b) = (
-                (0x7d as f32 * (1.0 - t) + 0x2e as f32 * t) as u8,
-                (0x46 as f32 * (1.0 - t) + 0xc8 as f32 * t) as u8,
-                (0xf2 as f32 * (1.0 - t) + 0xff as f32 * t) as u8,
-            );
-            // White "H": two stems and a bar.
-            let u = fx / s;
-            let v = fy / s;
-            let stem = (0.26..0.40).contains(&u) || (0.60..0.74).contains(&u);
-            let bar = (0.46..0.56).contains(&v) && (0.26..0.74).contains(&u);
-            let glyph = (stem && (0.24..0.76).contains(&v)) || bar;
-            let i = ((y * size + x) * 4) as usize;
-            let (r, g, b) = if glyph { (255, 255, 255) } else { (r, g, b) };
-            rgba[i] = r;
-            rgba[i + 1] = g;
-            rgba[i + 2] = b;
-            rgba[i + 3] = (alpha * 255.0) as u8;
-        }
-    }
-    Icon::from_rgba(rgba, size, size).ok()
+    Icon::from_rgba(haku_brand::icon_rgba(size), size, size).ok()
 }
 
 impl ApplicationHandler<AppEvent> for App {
@@ -224,6 +192,15 @@ impl ApplicationHandler<AppEvent> for App {
         });
         let browser = Browser::new(window, servo, window_context, startup, wake);
         browser.window.set_visible(true);
+        if let Some(dir) = self.instance_dir.as_ref() {
+            let sender = browser.background_sender();
+            crate::instance::listen(
+                dir,
+                Box::new(move |urls| {
+                    sender.send(Box::new(move |b: &Browser| b.open_from_other_launch(urls)));
+                }),
+            );
+        }
         info!("HakuCX {} started", env!("CARGO_PKG_VERSION"));
         self.browser = Some(browser);
     }

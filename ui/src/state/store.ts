@@ -18,6 +18,8 @@ import type { CardInfo } from "../ipc/generated/CardInfo";
 import type { ExtensionInfo } from "../ipc/generated/ExtensionInfo";
 import type { LoginInfo } from "../ipc/generated/LoginInfo";
 import type { SyncStatus } from "../ipc/generated/SyncStatus";
+import type { SystemInfo } from "../ipc/generated/SystemInfo";
+import type { UpdateStatus } from "../ipc/generated/UpdateStatus";
 import type { VaultStatus } from "../ipc/generated/VaultStatus";
 import type { Event } from "../ipc/generated/Event";
 import type { Metrics } from "../ipc/generated/Metrics";
@@ -126,6 +128,8 @@ type State = {
   passwordPrompt: PasswordPrompt | null;
   autofill: AutofillSuggest | null;
   sync: SyncStatus | null;
+  system: SystemInfo | null;
+  update: UpdateStatus | null;
 
   panel: string | null;
   popup: Popup;
@@ -212,6 +216,8 @@ export const useStore = create<State & Actions>((set, get) => ({
   passwordPrompt: null,
   autofill: null,
   sync: null,
+  system: null,
+  update: null,
 
   panel: null,
   popup: null,
@@ -400,6 +406,17 @@ export const useStore = create<State & Actions>((set, get) => ({
       case "sync":
         set({ sync: event.status });
         break;
+      case "system":
+        set({ system: event.info });
+        break;
+      case "update": {
+        const before = get().update?.state;
+        set({ update: event.status });
+        if (event.status.state === "ready" && before !== "ready") {
+          get().toast(`HakuCX ${event.status.version} is ready to install`, "info", { label: "Restart to update", run: () => send({ type: "install-update" }) });
+        }
+        break;
+      }
       case "revealed":
         // Answered to the component that asked (it listens with onEvent).
         break;

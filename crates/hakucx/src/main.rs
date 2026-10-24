@@ -12,11 +12,14 @@ mod app;
 mod audio;
 mod browser;
 mod compositor;
+mod crash;
 mod downloads;
 mod extensions;
 mod favicon;
+mod instance;
 mod keyutils;
 mod limits;
+mod os_integration;
 mod os_secrets;
 mod protocol;
 mod texture_context;
@@ -66,6 +69,16 @@ fn parse_args() -> Result<LaunchOptions, String> {
             _ => options.urls.push(arg),
         }
     }
+    // Windows passes files ("Open with HakuCX") as paths: open them as file:// addresses.
+    for url in options.urls.iter_mut() {
+        let path = std::path::Path::new(url.as_str());
+        if path.is_absolute()
+            && path.exists()
+            && let Ok(file) = url::Url::from_file_path(path)
+        {
+            *url = file.to_string();
+        }
+    }
     Ok(options)
 }
 
@@ -87,17 +100,43 @@ fn main() {
         }
     };
 
+    // A portable copy keeps its data next to itself.
+    if std::env::var_os("HAKU_DATA_DIR").is_none()
+        && let Some(dir) = os_integration::portable_data_dir()
+    {
+        // SAFETY: set before any thread is spawned.
+        unsafe { std::env::set_var("HAKU_DATA_DIR", dir) };
+    }
+    if let Ok(root) = haku_core::storage::data_root() {
+        crash::install_hook(&root);
+    }
+
     rustls::crypto::aws_lc_rs::default_provider()
         .install_default()
         .expect("install rustls crypto provider");
 
     let startup = app::prepare(options);
+    // One process per profile: if this profile is already open, hand it our addresses.
+    let instance_dir = startup
+        .paths
+        .as_ref()
+        .filter(|_| !startup.options.private && !startup.options.secondary)
+        .map(|p| p.root.clone());
+    if let Some(dir) = instance_dir.as_ref()
+        && instance::forward(dir, &startup.options.urls)
+    {
+        return;
+    }
     let event_loop = EventLoop::<app::AppEvent>::with_user_event()
         .build()
         .expect("create event loop");
     let waker = app::Waker(event_loop.create_proxy());
-    let mut application = app::App::new(waker, startup);
-    if let Err(e) = event_loop.run_app(&mut application) {
+    let mut application = app::App::new(waker, startup, instance_dir.clone());
+    let result = event_loop.run_app(&mut application);
+    if let Some(dir) = instance_dir.as_ref() {
+        instance::release(dir);
+    }
+    if let Err(e) = result {
         eprintln!("HakuCX stopped with an error: {e}");
         std::process::exit(1);
     }

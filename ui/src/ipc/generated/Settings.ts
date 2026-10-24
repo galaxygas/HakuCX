@@ -25,6 +25,7 @@ import type { Startup } from "./Startup";
 import type { Sync } from "./Sync";
 import type { System } from "./System";
 import type { TabSettings } from "./TabSettings";
+import type { Updates } from "./Updates";
 import type { Video } from "./Video";
 
-export type Settings = { version: number, appearance: Appearance, tabs: TabSettings, sidebar: SidebarSettings, startPage: StartPage, features: Features, sounds: Sounds, lights: Lights, battery: Battery, player: Player, video: Video, control: GxControl, cleaner: Cleaner, panic: Panic, privacy: Privacy, permissions: Permissions, search: Search, startup: Startup, languages: Languages, downloads: Downloads, accessibility: Accessibility, system: System, sync: Sync, autofill: Autofill, smartHome: SmartHome, ai: Ai, shortcuts: Shortcuts, earlyBird: EarlyBird, };
+export type Settings = { version: number, appearance: Appearance, tabs: TabSettings, sidebar: SidebarSettings, startPage: StartPage, features: Features, sounds: Sounds, lights: Lights, battery: Battery, player: Player, video: Video, control: GxControl, cleaner: Cleaner, panic: Panic, privacy: Privacy, permissions: Permissions, search: Search, startup: Startup, languages: Languages, downloads: Downloads, accessibility: Accessibility, system: System, sync: Sync, autofill: Autofill, updates: Updates, smartHome: SmartHome, ai: Ai, shortcuts: Shortcuts, earlyBird: EarlyBird, };

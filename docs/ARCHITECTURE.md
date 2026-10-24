@@ -53,6 +53,16 @@ Servo has no WebExtensions support, so HakuCX implements the runtime (details an
 
 The vault and sync formats are engine-independent (`haku-core`); the browser supplies the Windows pieces (DPAPI, Windows Hello in `os_secrets.rs`). A page script reports submitted logins and focused fields over the page channel; the core decides from the tab's real address what to offer, and the UI draws the prompt and suggestions over the page. See [PASSWORDS-AND-SYNC.md](PASSWORDS-AND-SYNC.md).
 
+## Processes, installation and updates
+
+- **One process per profile.** A second launch on the same profile, for example a link opened from another app, hands its addresses to the running process over a token-protected loopback connection (`instance.rs`) and exits. Additional windows and private windows are separate processes on purpose.
+- **Windows integration** (`os_integration.rs`) is per user, under `HKEY_CURRENT_USER`:
+  - browser registration (ProgIDs, `StartMenuInternet`, `RegisteredApplications`);
+  - start at sign-in;
+  - telling an installed copy from a portable one.
+- **Updates.** The updater (`browser/system.rs`, `haku_core::update`) verifies minisign signatures against a key embedded at build time from `packaging/update-key.pub`.
+- **Program icon.** The icon is drawn in code (`haku-brand`) and embedded in `hakucx.exe` with version information by the build script.
+
 ## UI state
 
 The UI keeps a mirror of the core's state in a Zustand store (`ui/src/state/store.ts`), updated only by events from Rust. Selectors must return stable values: a selector that returns a fresh `[]` or object on every call makes React re-render forever (use the shared `NONE` constant).

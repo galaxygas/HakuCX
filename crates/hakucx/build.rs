@@ -19,6 +19,78 @@ fn main() {
     println!("cargo::rerun-if-changed=build.rs");
     build_ui();
     copy_angle_dlls();
+    embed_update_key();
+    embed_resources();
+}
+
+/// The program icon and version information shown by Explorer, the taskbar and installers.
+fn embed_resources() {
+    if env::var("CARGO_CFG_TARGET_OS").as_deref() != Ok("windows") {
+        return;
+    }
+    let out = PathBuf::from(env::var("OUT_DIR").expect("OUT_DIR"));
+    let ico = out.join("hakucx.ico");
+    fs::write(&ico, haku_brand::ico(haku_brand::ICO_SIZES)).expect("write icon");
+    let version = env::var("CARGO_PKG_VERSION").expect("version");
+    let numbers: Vec<u32> = version
+        .split(['.', '-'])
+        .take(3)
+        .map(|p| p.parse().unwrap_or(0))
+        .collect();
+    let (major, minor, patch) = (numbers[0], numbers[1], numbers[2]);
+    let rc = format!(
+        r#"1 ICON "{icon}"
+1 VERSIONINFO
+FILEVERSION {major},{minor},{patch},0
+PRODUCTVERSION {major},{minor},{patch},0
+FILEOS 0x40004
+FILETYPE 0x1
+BEGIN
+  BLOCK "StringFileInfo"
+  BEGIN
+    BLOCK "040904b0"
+    BEGIN
+      VALUE "CompanyName", "HakuCX contributors"
+      VALUE "FileDescription", "HakuCX"
+      VALUE "FileVersion", "{version}"
+      VALUE "InternalName", "hakucx"
+      VALUE "LegalCopyright", "Mozilla Public License 2.0"
+      VALUE "OriginalFilename", "hakucx.exe"
+      VALUE "ProductName", "HakuCX"
+      VALUE "ProductVersion", "{version}"
+    END
+  END
+  BLOCK "VarFileInfo"
+  BEGIN
+    VALUE "Translation", 0x409, 1200
+  END
+END
+"#,
+        icon = ico.display().to_string().replace('\\', "/"),
+    );
+    let rc_path = out.join("hakucx.rc");
+    fs::write(&rc_path, rc).expect("write resource script");
+    embed_resource::compile(&rc_path, embed_resource::NONE)
+        .manifest_optional()
+        .expect("compile the Windows resources (rc.exe from the Windows SDK)");
+}
+
+/// The updater's public key: the key line of `packaging/update-key.pub` (minisign format).
+/// Without that file the build has no updater (it says so in Settings).
+fn embed_update_key() {
+    let manifest = PathBuf::from(env::var("CARGO_MANIFEST_DIR").expect("CARGO_MANIFEST_DIR"));
+    let file = manifest.join("../../packaging/update-key.pub");
+    println!("cargo::rerun-if-changed={}", file.display());
+    let Ok(text) = fs::read_to_string(&file) else {
+        return;
+    };
+    if let Some(key) = text
+        .lines()
+        .map(str::trim)
+        .find(|l| !l.is_empty() && !l.starts_with("untrusted comment:"))
+    {
+        println!("cargo::rustc-env=HAKU_UPDATE_KEY={key}");
+    }
 }
 
 fn build_ui() {
