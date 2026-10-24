@@ -135,10 +135,11 @@ function Waves({ accent, seed, layers = 6 }: { accent: string; seed: number; lay
 export function Wallpaper({ className }: { className?: string }) {
   const appearance = useStore((s) => s.settings?.appearance);
   const palette = useStore((s) => s.palette);
+  const saver = useStore((s) => s.power?.saver ?? false);
   if (!appearance || !palette) return null;
   const accent = palette.vars["--hx-accent"] ?? "#7d46f2";
   const dark = palette.dark;
-  const animated = appearance.animatedWallpaper && !appearance.reduceAnimations;
+  const animated = appearance.animatedWallpaper && !appearance.reduceAnimations && !saver;
   // Daily wallpapers: a different seed each day.
   const daily = appearance.dailyWallpapers ? Math.floor(Date.now() / 86_400_000) : 0;
   const seed = 1337 + daily;

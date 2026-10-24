@@ -8,6 +8,8 @@ import { send } from "../ipc/bridge";
 import { clsx } from "../lib/util";
 import { useStore } from "../state/store";
 import { ExtPopupHost } from "../shell/ExtensionButtons";
+import { TabHoverCard } from "../shell/TabHoverCard";
+import { SelectionPopupHost } from "./SelectionPopup";
 import { EasySetup } from "./EasySetup";
 import { ExtPrompts } from "./ExtPrompts";
 import { AutofillHost, PasswordPromptHost } from "./AutofillOverlays";
@@ -58,6 +60,8 @@ export function Overlays() {
       <SidebarSetup />
       <ExtPopupHost />
       <Popups />
+      <TabHoverCard />
+      <SelectionPopupHost />
       <Menus />
       <Palette />
       <Modals />

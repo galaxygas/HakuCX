@@ -232,10 +232,10 @@ export const SECTIONS: SectionDef[] = [
       {
         title: "Battery saver",
         rows: [
-          toggle("battery", "saver", "Enable battery saver", "Pauses animations and music and snoozes background tabs sooner"),
+          toggle("battery", "saver", "Enable battery saver", "Pauses background music and interface animations, and snoozes background tabs after 5 minutes"),
           toggle("battery", "autoWhenUnplugged", "Save battery automatically when unplugged"),
           slider("battery", "autoBelowPercent", "Or when the battery is below", 0, 80, 5, (v) => (v ? `${v}%` : "never")),
-          toggle("battery", "showToolbarIcon", "Always show battery icon on toolbar"),
+          toggle("battery", "showToolbarIcon", "Always show battery icon on toolbar", "Otherwise it shows while the computer runs on battery"),
         ],
       },
       { title: "Easy files", rows: [toggle("features", "easyFiles", "Show recent downloads when a site asks you to upload a file")] },
@@ -316,7 +316,7 @@ export const SECTIONS: SectionDef[] = [
     icon: "film",
     group: 0,
     cards: [
-      { title: "RGX", rows: [toggle("video", "rgxEnhanceVideos", "Enhance videos", "Sharper contrast and richer color for video"), toggle("video", "rgxEnhanceImages", "Enhance images")] },
+      { title: "RGX", rows: [toggle("video", "rgxEnhanceVideos", "Enhance videos", "Sharper contrast and richer color for video"), toggle("video", "rgxEnhanceImages", "Enhance images", "Sharper contrast and richer color for pictures on web pages")] },
       {
         title: "Video pop out",
         rows: [
@@ -357,9 +357,10 @@ export const SECTIONS: SectionDef[] = [
       {
         title: "MQTT",
         rows: [
-          toggle("smartHome", "mqtt", "MQTT support", "Publish your theme color and media state to an MQTT broker (Home Assistant, etc.)"),
-          custom("Broker", (s) => <TextSetting value={s.smartHome.brokerUrl} onSave={(v) => patch({ smartHome: { brokerUrl: v.trim() } })} />),
+          toggle("smartHome", "mqtt", "MQTT support", "Publish your theme color and what is playing to an MQTT broker, so Home Assistant and the like can match your lights"),
+          custom("Broker", (s) => <TextSetting value={s.smartHome.brokerUrl} placeholder="mqtt://user:password@192.168.1.10:1883" onSave={(v) => patch({ smartHome: { brokerUrl: v.trim() } })} />, "Plain MQTT on your network (TLS brokers are not supported yet)"),
           custom("Topic prefix", (s) => <TextSetting value={s.smartHome.topicPrefix} onSave={(v) => patch({ smartHome: { topicPrefix: v.trim() } })} width={160} />),
+          custom("Connection", () => <SmartHomeState />, "Retained topics: <prefix>/status, /theme/accent, /media/playing, /media/title"),
         ],
       },
     ],
@@ -431,8 +432,8 @@ export const SECTIONS: SectionDef[] = [
           toggle("privacy", "javascriptOptimization", "JavaScript optimization", "Off disables the JIT compilers: slower, but a smaller attack surface"),
           toggle("privacy", "blockPopups", "Block pop-ups", "Allows new windows only right after you click or type on the page"),
           link("Site settings", "haku://settings/site-settings", "Permissions and content per site"),
-          toggle("privacy", "pasteProtectHijack", "Paste Protect: warn when a site changes your clipboard"),
-          toggle("privacy", "autoRemoveUnusedPermissions", "Automatically remove permissions from unused sites"),
+          toggle("privacy", "pasteProtectHijack", "Paste Protect: warn when a site changes your clipboard", "After you copy an IBAN, card number or crypto address from a page, HakuCX warns if something else is pasted within two minutes"),
+          toggle("privacy", "autoRemoveUnusedPermissions", "Automatically remove permissions from unused sites", "What you allowed a site (camera, location, notifications...) is taken back when you haven't opened it for 90 days; blocks stay"),
           { kind: "custom", label: "Crash reports", render: () => <CrashReportsRow />, full: true },
           unsupported("Send feature usage statistics", "HakuCX has no telemetry"),
         ],
@@ -555,8 +556,8 @@ export const SECTIONS: SectionDef[] = [
       {
         title: "Accessibility",
         rows: [
-          toggle("accessibility", "focusHighlight", "Show a quick highlight on the focused object"),
-          toggle("accessibility", "swipeNavigation", "Swipe between pages", "Two-finger horizontal swipe on a touchpad goes back and forward"),
+          toggle("accessibility", "focusHighlight", "Show a quick highlight on the focused object", "A short outline in your theme color around the field or link you move to with the keyboard"),
+          unsupported("Swipe between pages", `${ENGINE_LIMIT}: it does not report whether a page used a sideways scroll, so a swipe can't be told from scrolling a carousel`),
           toggle("accessibility", "copyConfirmations", "Copied to clipboard confirmations"),
           toggle("accessibility", "highContrastUi", "High-contrast browser interface"),
           unsupported("Screen reader support", `${ENGINE_LIMIT} on Windows (accessibility tree is experimental)`),
@@ -606,4 +607,12 @@ function ToggleInline({ on, set, disabled }: { on: boolean; set: (v: boolean) =>
       <span className="knob" />
     </button>
   );
+}
+
+function SmartHomeState() {
+  const status = useStore((s) => s.smartHome);
+  if (!status || status.state === "off") return <span className="dim">Off</span>;
+  if (status.state === "connected") return <span className="chip accent">Connected</span>;
+  if (status.state === "connecting") return <span className="dim">Connecting...</span>;
+  return <span className="warn-text" style={{ maxWidth: 300 }}>{status.message}</span>;
 }

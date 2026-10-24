@@ -20,6 +20,8 @@ export function TabStrip() {
   const setPalette = useStore((s) => s.setPalette);
   const stripRef = useRef<HTMLDivElement>(null);
   const [drag, setDrag] = useState<{ tab: string; over: number } | null>(null);
+  // Dragging a tab down onto the page: which half it would take in a split screen.
+  const [splitDrop, setSplitDrop] = useState<{ tab: string; side: "left" | "right" | null } | null>(null);
 
   const ws = session?.activeWorkspace ?? "";
   const tabs = useMemo(() => session?.tabs.filter((t) => t.workspaceId === ws) ?? [], [session, ws]);
@@ -39,12 +41,31 @@ export function TabStrip() {
   const startDrag = (e: React.MouseEvent, tab: Tab, index: number) => {
     if (e.button !== 0) return;
     const startX = e.clientX;
+    const startY = e.clientY;
     let moved = false;
+    let toPage = false;
+    const splitByDrag = !!settings?.appearance.splitScreen && !!settings.appearance.splitScreenDrag;
     const move = (ev: MouseEvent) => {
-      if (!moved && Math.abs(ev.clientX - startX) < 6) return;
+      if (!moved && Math.abs(ev.clientX - startX) < 6 && Math.abs(ev.clientY - startY) < 6) return;
       moved = true;
       const strip = stripRef.current;
       if (!strip) return;
+      const viewport = document.querySelector(".viewport")?.getBoundingClientRect();
+      // Below the tab strip: offer the page halves (the overlay takes the pointer from the
+      // page so the drag can continue there).
+      if (splitByDrag && viewport && ev.clientY > strip.getBoundingClientRect().bottom + 24) {
+        toPage = true;
+        const side = ev.clientY < viewport.top ? null : ev.clientX < viewport.left + viewport.width / 2 ? "left" : "right";
+        setSplitDrop({ tab: tab.id, side });
+        setDrag(null);
+        window.dispatchEvent(new CustomEvent("hx-layout"));
+        return;
+      }
+      if (toPage) {
+        toPage = false;
+        setSplitDrop(null);
+        window.dispatchEvent(new CustomEvent("hx-layout"));
+      }
       const items = Array.from(strip.querySelectorAll<HTMLElement>("[data-tab-index]"));
       let over = items.length;
       for (const el of items) {
@@ -59,6 +80,21 @@ export function TabStrip() {
     const up = () => {
       window.removeEventListener("mousemove", move);
       window.removeEventListener("mouseup", up);
+      if (toPage) {
+        setSplitDrop((drop) => {
+          const s = useStore.getState().session;
+          const current = s?.activeTabs[s.activeWorkspace];
+          // Pair with the active tab, or (dragging the active tab) with the one used before it.
+          const other = current && current !== tab.id ? current : s?.mru.find((id) => id !== tab.id && s.tabs.some((t) => t.id === id && t.workspaceId === s.activeWorkspace));
+          if (drop?.side && other) {
+            const [left, right] = drop.side === "left" ? [tab.id, other] : [other, tab.id];
+            send({ type: "set-split", left, right });
+          }
+          return null;
+        });
+        window.dispatchEvent(new CustomEvent("hx-layout"));
+        return;
+      }
       setDrag((d) => {
         if (moved && d) {
           const target = d.over > index ? d.over - 1 : d.over;
@@ -97,6 +133,8 @@ export function TabStrip() {
   });
 
   return (
+    <>
+    {splitDrop && <SplitDropOverlay side={splitDrop.side} />}
     <header
       className="tabstrip"
       onMouseDown={(e) => {
@@ -143,12 +181,21 @@ export function TabStrip() {
           <button title={maximized ? "Restore" : "Maximize"} onClick={() => send({ type: "window", action: "toggle-maximize" })}>
             <Icon name={maximized ? "minimize" : "square"} size={14} />
           </button>
-          <button className="close" title="Close" onClick={() => useStore.getState().session && send({ type: "window", action: "close" })}>
+          <button
+            className="close"
+            title="Close"
+            onClick={() => {
+              const s = useStore.getState();
+              if (s.settings?.tabs.warnCloseWindow && (s.session?.tabs.length ?? 0) > 1) s.openModal({ kind: "quit", window: true });
+              else send({ type: "window", action: "close" });
+            }}
+          >
             <Icon name="x" size={17} />
           </button>
         </div>
       )}
     </header>
+    </>
   );
 }
 
@@ -176,15 +223,32 @@ function TabButton({ tab, index, active, island, trace, dragging, onMouseDown }:
   const meta = useStore((s) => s.meta[tab.id]);
   const openMenu = useStore((s) => s.openMenu);
   const previews = useStore((s) => s.settings?.tabs.tabPreviews);
+  const enhanced = useStore((s) => s.settings?.tabs.enhancedTooltips);
+  const setHoverTab = useStore((s) => s.setHoverTab);
+  const hoverTimer = useRef(0);
   const title = meta?.title || tab.title || (isInternal(tab.url) ? "Speed Dial" : hostOf(tab.url));
   const loading = meta?.loading;
+  // With enhanced tooltips or previews, a hover card replaces the plain tooltip.
+  const card = previews || enhanced;
   return (
     <div
       data-tab-index={index}
       className={clsx("tab", active && "active", tab.pinned && "pinned", island && "in-island", dragging && "dragging", tab.snoozed && "snoozed")}
       style={{ "--island": island?.color ?? "var(--hx-accent)", "--trace": trace ?? 0 } as React.CSSProperties}
-      title={previews ? `${title}\n${tab.url}` : undefined}
+      title={card ? undefined : title}
+      onMouseEnter={(e) => {
+        if (!card) return;
+        const r = (e.currentTarget as HTMLElement).getBoundingClientRect();
+        window.clearTimeout(hoverTimer.current);
+        hoverTimer.current = window.setTimeout(() => setHoverTab({ tab: tab.id, x: r.left, y: r.bottom }), 450);
+      }}
+      onMouseLeave={() => {
+        window.clearTimeout(hoverTimer.current);
+        if (useStore.getState().hoverTab?.tab === tab.id) setHoverTab(null);
+      }}
       onMouseDown={(e) => {
+        window.clearTimeout(hoverTimer.current);
+        setHoverTab(null);
         if (e.button === 1) {
           e.preventDefault();
           send({ type: "close-tab", tab: tab.id });
@@ -236,6 +300,23 @@ function TabButton({ tab, index, active, island, trace, dragging, onMouseDown }:
         </button>
       )}
       {trace !== undefined && <span className="tab-trace" />}
+    </div>
+  );
+}
+
+/** Drop zones over the page while a tab is dragged down from the strip (split screen by drag
+ * and drop). `data-hit` makes the browser send the pointer here instead of to the page. */
+function SplitDropOverlay({ side }: { side: "left" | "right" | null }) {
+  const r = document.querySelector(".viewport")?.getBoundingClientRect();
+  if (!r) return null;
+  return (
+    <div className="split-drop" data-hit style={{ left: r.left, top: r.top, width: r.width, height: r.height }}>
+      <div className={clsx("split-drop-half", side === "left" && "on")}>
+        <span>Open on the left</span>
+      </div>
+      <div className={clsx("split-drop-half", side === "right" && "on")}>
+        <span>Open on the right</span>
+      </div>
     </div>
   );
 }

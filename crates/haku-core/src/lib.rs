@@ -14,6 +14,7 @@ pub mod history;
 pub mod ipc;
 pub mod omnibox;
 pub mod records;
+pub mod selection;
 pub mod session;
 pub mod settings;
 pub mod storage;

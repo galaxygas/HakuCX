@@ -23,6 +23,7 @@ export function PageDialogs() {
       <ColorHost />
       <PermissionHost />
       <AuthHost />
+      <EasyFilesHost />
     </>
   );
 }
@@ -150,8 +151,11 @@ function ColorHost() {
 function PermissionHost() {
   const prompt = useStore((s) => s.permissions[0]);
   const shift = useStore((s) => s.shiftPermission);
+  const quiet = useStore((s) => s.settings?.permissions.quietRequests ?? false);
+  const open = useStore((s) => s.permissionOpen);
   const [remember, setRemember] = useState(true);
-  if (!prompt) return null;
+  // Quieter messaging: the request waits behind the address bar icon until clicked.
+  if (!prompt || (quiet && !open)) return null;
   const answer = (allow: boolean) => {
     send({ type: "permission-response", id: prompt.id, allow, remember });
     shift();
@@ -215,6 +219,59 @@ function AuthHost() {
           <Button kind="accent" onClick={() => respond(true)}>
             Sign in
           </Button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function fileSize(n: number) {
+  return n < 1024 ? `${n} B` : n < 1048576 ? `${(n / 1024).toFixed(0)} KB` : `${(n / 1048576).toFixed(1)} MB`;
+}
+
+/** Easy Files: a page asked for a file; offer recent downloads before the system dialog. */
+function EasyFilesHost() {
+  const offer = useStore((s) => s.easyFiles);
+  const [picked, setPicked] = useState<string[]>([]);
+  useEffect(() => setPicked([]), [offer?.id]);
+  if (!offer) return null;
+  const answer = (paths: string[], browse: boolean) => {
+    send({ type: "file-picker-response", id: offer.id, paths, browse });
+    useStore.setState({ easyFiles: null });
+  };
+  return (
+    <div className="page-dialog-backdrop">
+      <div className="page-dialog easy-files" role="dialog">
+        <div className="display">Choose a file</div>
+        <p className="muted small">Recent downloads</p>
+        <div className="easy-files-list">
+          {offer.files.map((f) => {
+            const on = picked.includes(f.path);
+            return (
+              <button
+                key={f.path}
+                className={clsx("easy-file", on && "on")}
+                title={f.path}
+                onClick={() => (offer.multiple ? setPicked(on ? picked.filter((p) => p !== f.path) : [...picked, f.path]) : answer([f.path], false))}
+              >
+                <Icon name={f.mime.startsWith("image/") ? "image" : f.mime.startsWith("video/") ? "film" : "file"} size={16} />
+                <span className="grow ellipsis">{f.name}</span>
+                <small className="dim">{fileSize(Number(f.size))}</small>
+              </button>
+            );
+          })}
+        </div>
+        <div className="row">
+          <Button kind="ghost" onClick={() => answer([], true)}>
+            Browse your computer...
+          </Button>
+          <span className="grow" />
+          <Button onClick={() => answer([], false)}>Cancel</Button>
+          {offer.multiple && (
+            <Button kind="accent" disabled={!picked.length} onClick={() => answer(picked, false)}>
+              Upload {picked.length || ""}
+            </Button>
+          )}
         </div>
       </div>
     </div>

@@ -38,6 +38,7 @@ impl Browser {
                 .url(parsed)
                 .hidpi_scale_factor(euclid::Scale::new(self.scale()))
                 .user_content_manager(content_manager)
+                .clipboard_delegate(self.rc())
                 .delegate(self.rc())
                 .build();
             self.panel_by_webview

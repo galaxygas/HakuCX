@@ -241,11 +241,22 @@ impl Browser {
                     .insert(id, PendingControl::ContextMenu(menu, engine_id, tab));
             }
             EmbedderControl::FilePicker(picker) => {
-                // The native file dialog is modal; open it outside the Servo callback.
+                let offer = self.easy_files_for(&picker);
+                let multiple = picker.allow_select_multiple();
                 self.controls
                     .borrow_mut()
                     .insert(id, PendingControl::File(picker, engine_id));
-                self.defer(move |b| b.run_file_picker(id));
+                if offer.is_empty() {
+                    // The native file dialog is modal; open it outside the Servo callback.
+                    self.defer(move |b| b.run_file_picker(id));
+                } else {
+                    self.emit(Event::EasyFiles {
+                        id,
+                        tab,
+                        multiple,
+                        files: offer,
+                    });
+                }
             }
             EmbedderControl::InputMethod(ime) => {
                 let rect = self.page_rect_to_ui(&webview, ime.position());
@@ -271,6 +282,92 @@ impl Browser {
             self.emit(Event::HideControl { id });
         } else {
             self.window.set_ime_allowed(false);
+        }
+    }
+
+    /// Easy Files: recent downloads that fit what the page accepts (newest first), when the
+    /// setting is on.
+    fn easy_files_for(&self, picker: &FilePicker) -> Vec<haku_core::ipc::EasyFile> {
+        if !self.settings.borrow().features.easy_files {
+            return Vec::new();
+        }
+        let patterns: Vec<String> = picker
+            .filter_patterns()
+            .iter()
+            .map(|p| p.0.trim().to_ascii_lowercase())
+            .filter(|p| !p.is_empty())
+            .collect();
+        let accepts = |name: &str, mime: &str| {
+            patterns.is_empty()
+                || patterns.iter().any(|p| {
+                    if let Some(prefix) = p.strip_suffix("/*") {
+                        mime.starts_with(&format!("{prefix}/"))
+                    } else if p.contains('/') {
+                        mime == p
+                    } else {
+                        name.to_ascii_lowercase()
+                            .ends_with(&format!(".{}", p.trim_start_matches('.')))
+                    }
+                })
+        };
+        let mut files: Vec<haku_core::ipc::EasyFile> = self
+            .downloads
+            .borrow()
+            .items
+            .iter()
+            .filter(|d| d.state == haku_core::records::DownloadState::Completed)
+            .filter_map(|d| {
+                let meta = std::fs::metadata(&d.path).ok().filter(|m| m.is_file())?;
+                let path = std::path::Path::new(&d.path);
+                let name = path.file_name()?.to_string_lossy().into_owned();
+                let mime = mime_guess::from_path(path)
+                    .first_or_octet_stream()
+                    .to_string();
+                accepts(&name, &mime).then(|| haku_core::ipc::EasyFile {
+                    path: d.path.clone(),
+                    name,
+                    size: meta.len(),
+                    mime,
+                    downloaded_at: d.ended_at.unwrap_or(d.started_at),
+                })
+            })
+            .collect();
+        files.sort_by_key(|f| std::cmp::Reverse(f.downloaded_at));
+        files.truncate(12);
+        files
+    }
+
+    /// The UI's answer to Easy Files.
+    pub(crate) fn answer_file_picker(&self, id: u32, paths: Vec<String>, browse: bool) {
+        if browse {
+            self.run_file_picker(id);
+            return;
+        }
+        let Some(PendingControl::File(mut picker, _)) = self.controls.borrow_mut().remove(&id)
+        else {
+            return;
+        };
+        // Only files from the download list are accepted from the UI.
+        let offered: Vec<String> = self
+            .downloads
+            .borrow()
+            .items
+            .iter()
+            .map(|d| d.path.clone())
+            .collect();
+        let mut chosen: Vec<std::path::PathBuf> = paths
+            .into_iter()
+            .filter(|p| offered.contains(p) && std::path::Path::new(p).is_file())
+            .map(std::path::PathBuf::from)
+            .collect();
+        if !picker.allow_select_multiple() {
+            chosen.truncate(1);
+        }
+        if chosen.is_empty() {
+            picker.dismiss();
+        } else {
+            picker.select(&chosen);
+            picker.submit();
         }
     }
 

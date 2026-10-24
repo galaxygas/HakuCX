@@ -30,7 +30,7 @@ env_logger = "0.11"
 rusqlite = { version = "0.38", features = ["bundled"] }
 thiserror = "2"
 uuid = { version = "1", features = ["v4", "serde"] }
-time = { version = "0.3", features = ["formatting", "parsing", "macros"] }
+time = { version = "0.3", features = ["formatting", "parsing", "macros", "local-offset"] }
 html-escape = "0.3"
 tempfile = "3"
 include_dir = "0.7"
@@ -44,7 +44,7 @@ open = "5"
 adblock = { version = "0.13", default-features = false, features = ["embedded-domain-resolver", "full-regex-handling"] }
 content-security-policy = "0.9"
 sysinfo = { version = "0.39", default-features = false, features = ["system"] }
-windows = { version = "0.62", features = ["Win32_Foundation", "Win32_Security", "Win32_System_JobObjects", "Win32_System_Threading", "Win32_System_SystemInformation", "Win32_UI_Input_KeyboardAndMouse", "Win32_Security_Cryptography", "Win32_System_WinRT", "Security_Credentials_UI", "Win32_System_Registry", "Win32_UI_Shell", "Win32_Media_Audio", "Win32_Media_Audio_Endpoints", "Win32_System_Com", "Win32_System_Com_StructuredStorage", "Win32_System_Variant", "Win32_UI_WindowsAndMessaging"] }
+windows = { version = "0.62", features = ["Win32_Foundation", "Win32_Security", "Win32_System_JobObjects", "Win32_System_Threading", "Win32_System_SystemInformation", "Win32_UI_Input_KeyboardAndMouse", "Win32_Security_Cryptography", "Win32_System_WinRT", "Security_Credentials_UI", "Win32_System_Registry", "Win32_UI_Shell", "Win32_Media_Audio", "Win32_Media_Audio_Endpoints", "Win32_System_Com", "Win32_System_Com_StructuredStorage", "Win32_System_Variant", "Win32_UI_WindowsAndMessaging", "Win32_System_Power"] }
 keyring = { version = "3.6", features = ["windows-native"] }
 rodio = { version = "0.23", default-features = false, features = ["playback"] }
 reqwest = { version = "0.13", default-features = false, features = ["rustls", "blocking", "http2", "charset", "gzip", "brotli", "deflate", "json"] }
@@ -73,6 +73,8 @@ haku-brand = { path = "crates/haku-brand" }
 haku-lights = { path = "crates/haku-lights" }
 # My Flow's local-network page for phones (plain HTTP/1.1, no TLS).
 tiny_http = "0.12"
+# Smart home: publish to your MQTT broker (Home Assistant and others).
+rumqttc = { version = "0.25", default-features = false }
 # The system clipboard (the same library Servo's default clipboard uses).
 arboard = { version = "3.6", default-features = false }
 # Puts the icon and version information into hakucx.exe.

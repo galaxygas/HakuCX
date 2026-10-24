@@ -38,6 +38,11 @@ enum PageMessage {
     Media(super::media::MediaReport),
     /// Pop the page's video out (its button, the miniplayer, or auto pop out).
     Popout(super::media::PopoutRequest),
+    /// Text was selected (search pop-up), or the selection was cleared (empty text).
+    Selection {
+        text: String,
+        rect: super::vault::CssRect,
+    },
     /// A pop out was asked for, but the page has no video with a web address.
     PopoutUnavailable {
         reason: String,
@@ -147,8 +152,22 @@ impl Browser {
         };
         let Some(url) = webview.url() else { return };
         let host = url.host_str().unwrap_or_default().to_owned();
-        let (force_dark, shader, site_css, cosmetic) = {
+        let (force_dark, shader, site_css, cosmetic, extra) = {
             let s = self.settings.borrow();
+            let accent = haku_core::themes::palette_for_settings(
+                &s.appearance,
+                &self.user_themes.borrow().themes,
+                self.system_dark.get(),
+            )
+            .vars
+            .get("--hx-accent")
+            .cloned()
+            .unwrap_or_else(|| "#7d46f2".into());
+            let extra = page_scripts::feature_css(
+                s.video.rgx_enhance_videos,
+                s.video.rgx_enhance_images,
+                s.accessibility.focus_highlight.then_some(accent.as_str()),
+            );
             let dark_exception = s
                 .features
                 .force_dark_exceptions
@@ -181,9 +200,11 @@ impl Browser {
                 shader,
                 site_css,
                 ads_on,
+                extra,
             )
         };
         let mut css = site_css;
+        css.push_str(&extra);
         if cosmetic {
             let cosmetic_css = self.blocker.cosmetic_css(url.as_str());
             if !cosmetic_css.is_empty() {
@@ -284,6 +305,7 @@ impl Browser {
             PageMessage::Media(report) => self.tab_media_report(tab, report),
             PageMessage::Popout(request) => self.tab_popout_request(tab, request),
             PageMessage::PopoutUnavailable { reason } => self.popout_unavailable(&reason),
+            PageMessage::Selection { text, rect } => self.selection_changed(tab, text, rect),
         }
     }
 

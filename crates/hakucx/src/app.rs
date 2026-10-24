@@ -239,9 +239,9 @@ impl ApplicationHandler<AppEvent> for App {
         }
         match event {
             WindowEvent::CloseRequested => {
-                if browser.should_confirm_quit() {
+                if browser.should_confirm(true) {
                     browser.emit(Event::Open {
-                        target: "quit".into(),
+                        target: "close-window".into(),
                     });
                 } else {
                     event_loop.exit();

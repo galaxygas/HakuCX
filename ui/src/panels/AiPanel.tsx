@@ -47,6 +47,15 @@ export function AiPanel() {
     list.current?.scrollTo({ top: list.current.scrollHeight });
   }, [messages, busy]);
 
+  // A prompt sent from the search pop-up.
+  const aiAsk = useStore((s) => s.aiAsk);
+  useEffect(() => {
+    if (!aiAsk || busy || !ai?.enabled) return;
+    useStore.setState({ aiAsk: null });
+    ask(aiAsk.prompt);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [aiAsk]);
+
   const ask = (content: string, shown?: string) => {
     const next: AiMessage[] = [...messages, { role: "user", content }];
     setMessages([...messages, { role: "user", content: shown ?? content }]);

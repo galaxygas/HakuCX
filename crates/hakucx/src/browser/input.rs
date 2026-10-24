@@ -314,6 +314,7 @@ impl Browser {
             WindowEvent::ModifiersChanged(m) => self.modifiers.set(m.state()),
             WindowEvent::CursorMoved { position, .. } => {
                 self.cursor.set(position);
+                self.gesture_move(position);
                 let previous = self.pointer_target.get();
                 let (target, webview, point) = self.hit_test();
                 if previous != target
@@ -358,6 +359,9 @@ impl Browser {
                     {
                         let _ = self.window.drag_resize_window(dir);
                     }
+                    return;
+                }
+                if self.gesture_button(target, &webview, point, state, button) {
                     return;
                 }
                 if state == ElementState::Pressed {
@@ -718,7 +722,13 @@ impl Browser {
                 }
             }
             "easy-setup" => open("easy-setup"),
-            "quit" => open("quit"),
+            "quit" => {
+                if self.should_confirm(false) {
+                    open("quit");
+                } else {
+                    self.window_action(WindowAction::Quit);
+                }
+            }
             _ => {}
         }
     }

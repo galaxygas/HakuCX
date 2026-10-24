@@ -288,6 +288,18 @@ impl Browser {
         self.popout_changed();
     }
 
+    /// Close the pop out at once (panic button): the tab's video stays paused where it was.
+    pub(crate) fn dismiss_popout(&self) {
+        let Some(popout) = self.popout.borrow_mut().take() else {
+            return;
+        };
+        let tab = popout.spec.tab.clone();
+        self.animating.borrow_mut().remove(&popout.webview.id());
+        drop(popout);
+        self.tab_media_script(&tab, "closed", &serde_json::json!({}));
+        self.popout_changed();
+    }
+
     /// Ask the page for the position, then close (the page answers with `popout-close`).
     fn close_popout_from_window(&self) {
         let webview = self.popout.borrow().as_ref().map(|p| p.webview.clone());

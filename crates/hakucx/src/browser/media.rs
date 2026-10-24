@@ -116,6 +116,7 @@ impl Browser {
             started
         };
         self.after_tab_update(tab);
+        self.smart_home_media();
         if started {
             self.player_pause_for_tab();
         } else if !report.playing {

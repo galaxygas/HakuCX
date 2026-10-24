@@ -56,6 +56,34 @@ pub fn install(manager: &Rc<UserContentManager>, settings: &haku_core::settings:
     }
 }
 
+/// CSS for page features: RGX (more contrast and color for videos and images) and the focus
+/// highlight (a short accent outline on the focused element). `accent` is `#rrggbb`.
+pub fn feature_css(rgx_videos: bool, rgx_images: bool, focus_accent: Option<&str>) -> String {
+    let mut css = String::new();
+    if rgx_videos {
+        css.push_str(
+            "
+video { filter: contrast(1.08) saturate(1.22) !important; }",
+        );
+    }
+    if rgx_images {
+        css.push_str(
+            "
+img, picture { filter: contrast(1.05) saturate(1.15) !important; }",
+        );
+    }
+    if let Some(accent) = focus_accent.filter(|a| {
+        a.len() == 7 && a.starts_with('#') && a[1..].chars().all(|c| c.is_ascii_hexdigit())
+    }) {
+        css.push_str(&format!(
+            "
+@keyframes __haku_focus {{ from {{ outline-color: {accent}; }} to {{ outline-color: transparent; }} }}
+:focus-visible {{ outline: 3px solid {accent} !important; outline-offset: 2px !important; animation: __haku_focus 1.2s ease-out forwards; }}"
+        ));
+    }
+    css
+}
+
 /// Do Not Track and Global Privacy Control as the JavaScript signals pages read
 /// (`navigator.doNotTrack`, `navigator.globalPrivacyControl`). The engine does not let the
 /// browser add request headers, so the `DNT`/`Sec-GPC` headers are not sent.
@@ -98,6 +126,31 @@ const BOOTSTRAP: &str = r#"(() => {
     const d = e.data;
     if (d && typeof d.__hakuExtRelay === "string" && e.source === window.parent && window.parent !== window) relay(d.__hakuExtRelay, d.payload);
   }, true);
+  // Search pop-up: report text selected with the mouse (not in form fields), and when it
+  // goes away. The browser decides whether to show anything.
+  let selectionShown = false;
+  document.addEventListener("mouseup", (event) => {
+    if (event.button !== 0) return;
+    setTimeout(() => {
+      const sel = window.getSelection();
+      const text = sel ? sel.toString().trim() : "";
+      const active = document.activeElement;
+      const editable = active && (active.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(active.tagName));
+      if (!text || text.length > 500 || editable || !sel.rangeCount) return;
+      const r = sel.getRangeAt(0).getBoundingClientRect();
+      if (r.width < 1 && r.height < 1) return;
+      selectionShown = true;
+      post({ type: "selection", text, rect: { x: r.left, y: r.top, w: r.width, h: r.height } });
+    }, 0);
+  }, true);
+  const clearSelection = () => {
+    if (!selectionShown) return;
+    selectionShown = false;
+    post({ type: "selection", text: "", rect: { x: 0, y: 0, w: 0, h: 0 } });
+  };
+  document.addEventListener("mousedown", clearSelection, true);
+  document.addEventListener("keydown", clearSelection, true);
+  window.addEventListener("scroll", clearSelection, true);
   const MAX_INLINE = 64 * 1024 * 1024;
   document.addEventListener("click", (event) => {
     if (event.defaultPrevented || event.button !== 0) return;

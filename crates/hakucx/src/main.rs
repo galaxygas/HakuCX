@@ -24,6 +24,7 @@ mod limits;
 mod os_integration;
 mod os_secrets;
 mod protocol;
+mod smart_home;
 mod texture_context;
 
 use browser::LaunchOptions;

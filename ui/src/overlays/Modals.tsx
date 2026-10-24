@@ -39,7 +39,7 @@ export function Modals() {
   if (!modal) return null;
   switch (modal.kind) {
     case "quit":
-      return <QuitModal close={close} />;
+      return <QuitModal close={close} window={!!modal.window} />;
     case "qr":
       return <QrModal url={modal.url} close={close} />;
     case "clear-data":
@@ -63,11 +63,13 @@ export function Modals() {
   }
 }
 
-function QuitModal({ close }: { close: () => void }) {
+/** `window`: closing the window (Settings: warn on closing window); otherwise quitting. */
+function QuitModal({ close, window }: { close: () => void; window: boolean }) {
   const tabs = useStore((s) => s.session?.tabs.length ?? 0);
+  const key = window ? "warnCloseWindow" : "warnQuit";
   return (
     <ModalFrame
-      title="Close HakuCX?"
+      title={window ? "Close this window?" : "Close HakuCX?"}
       onClose={close}
       footer={
         <>
@@ -80,8 +82,8 @@ function QuitModal({ close }: { close: () => void }) {
     >
       <p>You have {tabs} tabs open. They will be restored next time if "On startup" is set to retain tabs.</p>
       <Checkbox
-        checked={!useStore.getState().settings?.tabs.warnQuit}
-        onChange={(v) => send({ type: "patch-settings", patch: { tabs: { warnQuit: !v } } })}
+        checked={!useStore.getState().settings?.tabs[key]}
+        onChange={(v) => send({ type: "patch-settings", patch: { tabs: { [key]: !v } } })}
         label="Don't ask again"
       />
     </ModalFrame>

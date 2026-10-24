@@ -784,7 +784,7 @@ impl Browser {
 
     /// Convert a rectangle a page script measured (CSS pixels in the page's viewport) to UI
     /// coordinates.
-    fn page_css_rect_to_ui(&self, tab: &TabId, r: CssRect) -> Option<Rect> {
+    pub(crate) fn page_css_rect_to_ui(&self, tab: &TabId, r: CssRect) -> Option<Rect> {
         if !(r.x.is_finite() && r.y.is_finite() && r.w.is_finite() && r.h.is_finite()) {
             return None;
         }
@@ -799,7 +799,8 @@ impl Browser {
             .borrow()
             .tab(tab)
             .map(|t| t.zoom)
-            .unwrap_or(1.0);
+            .unwrap_or(1.0)
+            * self.default_zoom();
         let device = self.scale() * zoom;
         let ui = self.ui_scale();
         Some(Rect {

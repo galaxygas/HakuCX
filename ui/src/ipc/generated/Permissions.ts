@@ -12,4 +12,8 @@ defaults: { [key in string]: PermissionSetting },
 /**
  * Origin -> permission kind -> setting.
  */
-sites: { [key in string]: { [key in string]: PermissionSetting } }, quietRequests: boolean, };
+sites: { [key in string]: { [key in string]: PermissionSetting } }, quietRequests: boolean, 
+/**
+ * Origin -> when a page from it last loaded (ms), for sites that have settings here.
+ */
+lastUsed: { [key in string]: number }, };

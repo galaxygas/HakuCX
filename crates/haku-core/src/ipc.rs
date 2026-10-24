@@ -392,9 +392,12 @@ pub enum Command {
         username: Option<String>,
         password: Option<String>,
     },
+    /// Easy Files: the files picked from recent downloads, or `browse` for the system dialog
+    /// (nothing picked and no `browse`: cancelled).
     FilePickerResponse {
         id: u32,
         paths: Vec<String>,
+        browse: bool,
     },
 
     // ---- data
@@ -830,6 +833,53 @@ pub struct UpdateStatus {
     pub last_check: Option<i64>,
 }
 
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, TS)]
+#[serde(rename_all = "camelCase")]
+#[ts(export)]
+pub struct SelectionPopup {
+    pub tab: TabId,
+    /// The selection, in UI coordinates.
+    pub rect: Rect,
+    pub text: String,
+    /// Price, measurement or time converted for you (empty when none applies).
+    pub conversions: Vec<String>,
+    /// Offer AI prompts (the assistant is on, with highlight prompts).
+    pub ai: bool,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, TS)]
+#[serde(rename_all = "camelCase")]
+#[ts(export)]
+pub struct EasyFile {
+    pub path: String,
+    pub name: String,
+    pub size: u64,
+    pub mime: String,
+    pub downloaded_at: i64,
+}
+
+#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize, TS)]
+#[serde(rename_all = "camelCase")]
+#[ts(export)]
+pub struct SmartHomeStatus {
+    /// `off`, `connecting`, `connected` or `error` (see `message`).
+    pub state: String,
+    pub message: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize, TS)]
+#[serde(rename_all = "camelCase")]
+#[ts(export)]
+pub struct PowerStatus {
+    pub has_battery: bool,
+    pub on_battery: bool,
+    pub percent: Option<u8>,
+    /// Battery saver is on (by hand or automatically).
+    pub saver: bool,
+    /// It was turned on automatically (unplugged or low battery).
+    pub automatic: bool,
+}
+
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize, TS)]
 #[serde(rename_all = "camelCase")]
 #[ts(export)]
@@ -1132,6 +1182,22 @@ pub enum Event {
     TabClosed {
         tab: TabId,
     },
+    /// A small preview of a tab (JPEG data URL), for the tab hover card.
+    TabThumb {
+        tab: TabId,
+        image: String,
+    },
+    /// Text was selected on a page (search pop-up), or the selection went away (`None`).
+    SelectionPopup {
+        popup: Option<SelectionPopup>,
+    },
+    /// A page asked for a file: offer recent downloads first (Easy Files).
+    EasyFiles {
+        id: u32,
+        tab: TabId,
+        multiple: bool,
+        files: Vec<EasyFile>,
+    },
     Bookmarks {
         bookmarks: Bookmarks,
     },
@@ -1342,6 +1408,13 @@ pub enum Event {
     },
     Flow {
         status: FlowStatus,
+    },
+    SmartHome {
+        status: SmartHomeStatus,
+    },
+    /// The power source and whether battery saver is on.
+    Power {
+        status: PowerStatus,
     },
     Pinboards {
         pinboards: Pinboards,
