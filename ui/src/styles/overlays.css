@@ -920,3 +920,74 @@
 .callout p {
   margin: 0 0 8px;
 }
+
+/* ---- Easy Files */
+.easy-files {
+  width: 420px;
+}
+.easy-files-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-height: 320px;
+  overflow-y: auto;
+  margin-bottom: 10px;
+}
+.easy-file {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 9px;
+  border-radius: 8px;
+  border: 1px solid var(--hx-line);
+  color: var(--hx-accent);
+  text-align: left;
+}
+.easy-file .grow {
+  color: var(--hx-text);
+}
+.easy-file:hover,
+.easy-file.on {
+  background: var(--hx-accent-soft);
+  border-color: var(--hx-accent-dim);
+}
+
+/* ---- search pop-up over selected text */
+.selection-popup {
+  position: fixed;
+  z-index: 65;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 6px;
+  border-radius: 10px;
+  background: var(--hx-panel);
+  border: 1px solid var(--hx-line-strong);
+  box-shadow: 0 8px 24px var(--hx-shadow);
+  animation: fade-in 0.1s ease-out;
+}
+.selection-popup .row {
+  flex-wrap: wrap;
+  gap: 2px;
+}
+.sel-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 8px;
+  border-radius: 6px;
+  color: var(--hx-text);
+  font-size: 12px;
+}
+.sel-btn:hover {
+  background: var(--hx-hover);
+  color: var(--hx-accent);
+}
+.sel-conversion {
+  padding: 4px 8px;
+  border-radius: 6px;
+  background: var(--hx-accent-soft);
+  color: var(--hx-text);
+  font-weight: 600;
+  text-align: left;
+}

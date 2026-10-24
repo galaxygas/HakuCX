@@ -26,6 +26,9 @@ export function App() {
   const ready = useStore((s) => s.ready);
   const palette = useStore((s) => s.palette);
   const appearance = useStore((s) => s.settings?.appearance);
+  const highContrast = useStore((s) => s.settings?.accessibility.highContrastUi ?? false);
+  // Battery saver also stops interface animations.
+  const saver = useStore((s) => s.power?.saver ?? false);
   const sidebarShown = useStore((s) => s.settings?.sidebar.show ?? true);
   const bookmarksBar = useStore((s) => s.settings?.appearance.showBookmarksBar ?? false);
   const fullscreen = useStore((s) => s.fullscreen);
@@ -41,7 +44,8 @@ export function App() {
     const root = document.documentElement;
     for (const [k, v] of Object.entries(palette.vars)) root.style.setProperty(k, v);
     root.classList.toggle("light", !palette.dark);
-  }, [palette]);
+    root.classList.toggle("high-contrast", highContrast);
+  }, [palette, highContrast]);
 
   useLayoutEffect(() => {
     if (!appearance) return;
@@ -53,7 +57,7 @@ export function App() {
     root.style.setProperty("--hx-radius", `${appearance.cornerStyle === "sharp" ? 2 : appearance.roundness}px`);
     root.style.setProperty("--hx-ui-scale", String(appearance.uiScale / 100));
     root.style.fontSize = FONT_SIZES[appearance.fontSize] ?? "13px";
-    root.classList.toggle("reduce-motion", appearance.reduceAnimations);
+    root.classList.toggle("reduce-motion", appearance.reduceAnimations || saver);
     root.classList.toggle("crosshair", appearance.crosshairCursor);
     root.classList.toggle("focus-mode", custom && appearance.focusMode);
     root.dataset.corner = appearance.cornerStyle;
@@ -64,7 +68,7 @@ export function App() {
       document.head.appendChild(css);
     }
     if (css.textContent !== appearance.uiCss) css.textContent = appearance.uiCss;
-  }, [appearance]);
+  }, [appearance, saver]);
 
   const decoration = appearance?.windowDecoration ?? "outside";
   const showDecoration = !fullscreen && (decoration === "outside" || (decoration === "outside-except-maximized" && !maximized));

@@ -224,9 +224,7 @@ export function PanicPage() {
           {capturing ? "Press a key..." : panic.key}
         </button>
       </Line>
-      <Line label="Mute all tabs while panicking">
-        <Toggle on={panic.muteAll} onChange={(v) => patch({ panic: { muteAll: v } })} label="Mute all tabs" />
-      </Line>
+      <Line label="Sound" description="While the panic page shows, your tabs are unloaded, so nothing keeps playing; they load again when you press the key a second time." />
       <div className="setting-block">
         <div className="setting-line-text">
           <span>Pages to open</span>

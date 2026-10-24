@@ -197,6 +197,7 @@ impl Browser {
                 self.animating.borrow_mut().remove(&webview.id());
             }
             if closed {
+                self.thumb_forget(&id);
                 self.emit(Event::TabClosed { tab: id });
             }
         }
@@ -297,6 +298,7 @@ impl Browser {
         let mut builder = WebViewBuilder::new(&self.servo, self.pane_context(pane))
             .hidpi_scale_factor(euclid::Scale::new(self.scale()))
             .user_content_manager(content_manager.clone())
+            .clipboard_delegate(self.rc())
             .delegate(self.rc());
         if let Some(url) = url {
             builder = builder.url(url);
@@ -318,10 +320,29 @@ impl Browser {
         if let Some(view) = self.views.borrow_mut().get_mut(tab_id) {
             view.content_manager = Some(content_manager);
         }
-        if let Some(tab) = self.session.borrow().tab(tab_id)
-            && (tab.zoom - 1.0).abs() > f32::EPSILON
-        {
-            webview.set_page_zoom(tab.zoom);
+        let zoom = self.session.borrow().tab(tab_id).map(|t| t.zoom);
+        if let Some(zoom) = zoom {
+            let effective = zoom * self.default_zoom();
+            if (effective - 1.0).abs() > f32::EPSILON {
+                webview.set_page_zoom(effective);
+            }
+        }
+    }
+
+    /// Settings → Appearance → Default page zoom, as a factor. A tab's own zoom multiplies it
+    /// (1.0 = the default).
+    pub(crate) fn default_zoom(&self) -> f32 {
+        (self.settings.borrow().appearance.page_zoom.clamp(25, 500) as f32) / 100.0
+    }
+
+    /// Apply the default zoom to every open page (after the setting changes).
+    pub(crate) fn apply_default_zoom(&self) {
+        let default = self.default_zoom();
+        let session = self.session.borrow();
+        for (id, view) in self.views.borrow().iter() {
+            if let (Some(webview), Some(tab)) = (&view.webview, session.tab(id)) {
+                webview.set_page_zoom(tab.zoom * default);
+            }
         }
     }
 
@@ -575,7 +596,7 @@ impl Browser {
             }),
             can_go_forward: view.is_some_and(|v| v.can_go_forward),
             status: view.and_then(|v| v.status.clone()),
-            zoom: tab.zoom,
+            zoom: tab.zoom * self.default_zoom(),
             audible: view.is_some_and(|v| v.audible),
             blocked: view.map(|v| v.blocked).unwrap_or(0),
             crashed: view.and_then(|v| v.crashed.clone()),
@@ -623,6 +644,21 @@ impl Browser {
     pub(crate) fn set_loading(&self, tab_id: &TabId, status: LoadStatus) {
         if let Some(view) = self.views.borrow_mut().get_mut(tab_id) {
             view.loading = status != LoadStatus::Complete;
+        }
+        if status == LoadStatus::Complete
+            && !self.private
+            && let Some(url) = self.webview_for_tab(tab_id).and_then(|w| w.url())
+        {
+            // When sites with saved permissions were last used (unused ones lose them).
+            let origin = url.origin().ascii_serialization();
+            let noted = self
+                .settings
+                .borrow_mut()
+                .permissions
+                .note_used(&origin, haku_core::now_ms());
+            if noted {
+                self.settings_dirty.set(true);
+            }
         }
         self.after_tab_update(tab_id);
     }

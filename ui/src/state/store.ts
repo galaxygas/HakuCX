@@ -22,6 +22,10 @@ import type { SystemInfo } from "../ipc/generated/SystemInfo";
 import type { UpdateStatus } from "../ipc/generated/UpdateStatus";
 import type { LightsStatus } from "../ipc/generated/LightsStatus";
 import type { FlowStatus } from "../ipc/generated/FlowStatus";
+import type { PowerStatus } from "../ipc/generated/PowerStatus";
+import type { SmartHomeStatus } from "../ipc/generated/SmartHomeStatus";
+import type { SelectionPopup } from "../ipc/generated/SelectionPopup";
+import type { EasyFile } from "../ipc/generated/EasyFile";
 import type { VaultStatus } from "../ipc/generated/VaultStatus";
 import type { Event } from "../ipc/generated/Event";
 import type { Metrics } from "../ipc/generated/Metrics";
@@ -50,7 +54,7 @@ export type Menu =
   | { kind: "island"; x: number; y: number; island: string };
 
 export type Modal =
-  | { kind: "quit" }
+  | { kind: "quit"; window?: boolean }
   | { kind: "qr"; url: string }
   | { kind: "clear-data" }
   | { kind: "dial-edit"; id: string | null; parent: string }
@@ -134,6 +138,20 @@ type State = {
   update: UpdateStatus | null;
   lights: LightsStatus | null;
   flow: FlowStatus | null;
+  power: PowerStatus | null;
+  smartHome: SmartHomeStatus | null;
+  /** The search pop-up over selected page text. */
+  selectionPopup: SelectionPopup | null;
+  /** A prompt for the AI panel to send when it opens (from the search pop-up). */
+  aiAsk: { id: number; prompt: string } | null;
+  askAi(prompt: string): void;
+  /** Easy Files: recent downloads offered to a page that asked for a file. */
+  easyFiles: { id: number; tab: string; multiple: boolean; files: EasyFile[] } | null;
+  /** Tab previews (JPEG data URLs) for the tab hover card. */
+  thumbs: Record<string, string>;
+  /** The tab the pointer rests on, for the hover card. */
+  hoverTab: { tab: string; x: number; y: number } | null;
+  setHoverTab(hover: { tab: string; x: number; y: number } | null): void;
 
   panel: string | null;
   popup: Popup;
@@ -151,6 +169,8 @@ type State = {
   addressFocus: number;
   addressOpen: boolean;
   splash: boolean;
+  /** With quieter permission messaging, the prompt waits behind an address bar icon. */
+  permissionOpen: boolean;
 };
 
 type Actions = {
@@ -169,6 +189,7 @@ type Actions = {
   toast(text: string, kind?: string, action?: Toast["action"]): void;
   shiftDialog(): void;
   shiftPermission(): void;
+  setPermissionOpen(open: boolean): void;
   clearSelect(): void;
   clearColor(): void;
   clearAuth(): void;
@@ -224,6 +245,15 @@ export const useStore = create<State & Actions>((set, get) => ({
   update: null,
   lights: null,
   flow: null,
+  power: null,
+  smartHome: null,
+  selectionPopup: null,
+  aiAsk: null,
+  askAi: (prompt) => set((s) => ({ aiAsk: { id: Date.now(), prompt }, panel: "ai", popup: null, selectionPopup: null, drawer: s.drawer })),
+  easyFiles: null,
+  thumbs: {},
+  hoverTab: null,
+  setHoverTab: (hoverTab) => set({ hoverTab }),
 
   panel: null,
   popup: null,
@@ -269,11 +299,16 @@ export const useStore = create<State & Actions>((set, get) => ({
       case "tab-meta":
         set((s) => ({ meta: { ...s.meta, [event.meta.tab]: event.meta } }));
         break;
+      case "tab-thumb":
+        set((s) => ({ thumbs: { ...s.thumbs, [event.tab]: event.image } }));
+        break;
       case "tab-closed":
         set((s) => {
           const meta = { ...s.meta };
           delete meta[event.tab];
-          return { meta };
+          const thumbs = { ...s.thumbs };
+          delete thumbs[event.tab];
+          return { meta, thumbs };
         });
         break;
       case "bookmarks":
@@ -333,6 +368,7 @@ export const useStore = create<State & Actions>((set, get) => ({
           select: s.select?.id === event.id ? null : s.select,
           color: s.color?.id === event.id ? null : s.color,
           menu: s.menu?.kind === "page" && s.menu.info.id === event.id ? null : s.menu,
+          easyFiles: s.easyFiles?.id === event.id ? null : s.easyFiles,
         }));
         break;
       case "toast":
@@ -421,6 +457,18 @@ export const useStore = create<State & Actions>((set, get) => ({
       case "flow":
         set({ flow: event.status });
         break;
+      case "power":
+        set({ power: event.status });
+        break;
+      case "smart-home":
+        set({ smartHome: event.status });
+        break;
+      case "selection-popup":
+        set({ selectionPopup: event.popup });
+        break;
+      case "easy-files":
+        set({ easyFiles: { id: event.id, tab: event.tab, multiple: event.multiple, files: event.files } });
+        break;
       case "update": {
         const before = get().update?.state;
         set({ update: event.status });
@@ -471,7 +519,9 @@ export const useStore = create<State & Actions>((set, get) => ({
     window.setTimeout(() => get().dismissToast(id), kind === "error" || action ? 6000 : 3500);
   },
   shiftDialog: () => set((s) => ({ dialogs: s.dialogs.slice(1) })),
-  shiftPermission: () => set((s) => ({ permissions: s.permissions.slice(1) })),
+  shiftPermission: () => set((s) => ({ permissions: s.permissions.slice(1), permissionOpen: false })),
+  permissionOpen: false,
+  setPermissionOpen: (permissionOpen) => set({ permissionOpen }),
   clearSelect: () => set({ select: null }),
   clearColor: () => set({ color: null }),
   clearAuth: () => set({ auth: null }),
@@ -511,6 +561,9 @@ function handleOpen(target: string) {
       break;
     case "quit":
       s.openModal({ kind: "quit" });
+      break;
+    case "close-window":
+      s.openModal({ kind: "quit", window: true });
       break;
     case "clear-data":
       s.openModal({ kind: "clear-data" });
@@ -557,7 +610,9 @@ export function selectModal(s: State): boolean {
       s.palette_open ||
       s.addressOpen ||
       s.dialogs.length ||
-      s.permissions.length ||
+      // A quiet permission request waits behind its address bar icon without blocking the page.
+      (s.permissions.length && (!s.settings?.permissions.quietRequests || s.permissionOpen)) ||
+      s.easyFiles ||
       s.extInstall ||
       s.extPermissions.length ||
       s.splash,

@@ -12,6 +12,7 @@ import { Input } from "../components/Field";
 import { PinnedExtensions } from "./ExtensionButtons";
 import { ToolbarMiniplayer } from "./Miniplayer";
 import { loginsFor } from "../pages/settings/autofill";
+import { PERMISSION_LABELS } from "../lib/catalog";
 
 let requestId = 1;
 
@@ -24,6 +25,7 @@ export function Toolbar() {
   const drawer = useStore((s) => s.drawer);
   const setDrawer = useStore((s) => s.setDrawer);
   const togglePanel = useStore((s) => s.togglePanel);
+  const power = useStore((s) => s.power);
   const activeId = session?.activeTabs[session.activeWorkspace];
   const meta = useStore((s) => (activeId ? s.meta[activeId] : undefined));
 
@@ -89,13 +91,16 @@ export function Toolbar() {
           <span>AI</span>
         </button>
       )}
-      {settings?.battery.showToolbarIcon && (
+      {settings && (settings.battery.showToolbarIcon || power?.onBattery) && (
         <button
-          className={clsx("tool-btn", settings.battery.saver && "active")}
-          title={settings.battery.saver ? "Battery saver is on" : "Battery saver is off"}
+          className={clsx("tool-btn", power?.saver && "active")}
+          title={
+            (power?.saver ? (power.automatic ? "Battery saver is on (automatically, on battery power)" : "Battery saver is on") : "Battery saver is off") +
+            (power?.percent != null ? ` · ${power.percent}%` : "")
+          }
           onClick={() => send({ type: "patch-settings", patch: { battery: { saver: !settings.battery.saver } } })}
         >
-          <Icon name={settings.battery.saver ? "battery-charging" : "battery"} size={17} />
+          <Icon name={power?.saver ? "battery-charging" : "battery"} size={17} />
         </button>
       )}
       <button className={clsx("tool-btn", drawer === "easy-setup" && "active")} title="Easy Setup" onClick={() => setDrawer(drawer === "easy-setup" ? null : "easy-setup")}>
@@ -148,6 +153,7 @@ function AddressBar() {
   const security = meta?.security ?? "none";
   const extension = extensionName(url);
   const zoom = meta?.zoom ?? tab?.zoom ?? 1;
+  const defaultZoom = (settings?.appearance.pageZoom ?? 100) / 100;
 
   const commit = (value: string, s?: Suggestion) => {
     setEditing(false);
@@ -228,11 +234,12 @@ function AddressBar() {
           }
         }}
       />
-      {Math.abs(zoom - 1) > 0.001 && (
+      {Math.abs(zoom - defaultZoom) > 0.001 && (
         <button className="zoom-pill" title="Reset zoom (Ctrl+0)" onClick={() => send({ type: "zoom-step", delta: 0 })}>
           {Math.round(zoom * 100)}%
         </button>
       )}
+      <QuietPermissionButton />
       <SavedLoginsButton url={url} editing={editing} />
       {showBlocked && (meta?.blocked ?? 0) > 0 && (
         <button className="blocked-pill" title="Ads and trackers blocked on this page" onClick={(e) => openPopup("blocked", (e.currentTarget as HTMLElement).getBoundingClientRect())}>
@@ -346,4 +353,19 @@ function suggestionIcon(kind: string): string {
     default:
       return "globe";
   }
+}
+
+/** "Use quieter messaging": a pending permission request shows as this icon, not a prompt. */
+function QuietPermissionButton() {
+  const prompt = useStore((s) => s.permissions[0]);
+  const quiet = useStore((s) => s.settings?.permissions.quietRequests ?? false);
+  const open = useStore((s) => s.permissionOpen);
+  const setOpen = useStore((s) => s.setPermissionOpen);
+  if (!prompt || !quiet || open) return null;
+  const icon = prompt.kind === "camera" ? "camera" : prompt.kind === "microphone" ? "mic" : prompt.kind === "geolocation" ? "map-pin" : prompt.kind === "notifications" ? "bell" : "shield";
+  return (
+    <button className="address-chip-btn quiet-permission" title={`${prompt.origin} wants to use: ${PERMISSION_LABELS[prompt.kind] ?? prompt.kind}`} onClick={() => setOpen(true)}>
+      <Icon name={icon} size={15} />
+    </button>
+  );
 }

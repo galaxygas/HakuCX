@@ -361,12 +361,14 @@ impl Browser {
                 let list: Vec<Value> = moved.iter().map(|t| self.ext_tab_json(id, t)).collect();
                 Ok(if list.len() == 1 { list[0].clone() } else { Value::Array(list) })
             }
-            "tabs.getZoom" => self.ext_tab_or_active(arg(a, 0)).map(|t| json!(self.session.borrow().tab(&t).map(|t| t.zoom).unwrap_or(1.0))),
+            // Chrome's zoom factors are absolute; HakuCX keeps tab zoom relative to the default.
+            "tabs.getZoom" => self.ext_tab_or_active(arg(a, 0)).map(|t| json!(self.session.borrow().tab(&t).map(|t| t.zoom).unwrap_or(1.0) * self.default_zoom())),
             "tabs.setZoom" => self.ext_tab_or_active(arg(a, 0)).map(|t| {
                 let factor = arg(a, 1).as_f64().unwrap_or(0.0) as f32;
-                let zoom = self.session.borrow_mut().set_zoom(&t, if factor <= 0.0 { 1.0 } else { factor });
+                let default = self.default_zoom();
+                let zoom = self.session.borrow_mut().set_zoom(&t, if factor <= 0.0 { 1.0 } else { factor / default });
                 if let Some(w) = self.webview_for_tab(&t) {
-                    w.set_page_zoom(zoom);
+                    w.set_page_zoom(zoom * default);
                 }
                 self.after_tab_update(&t);
                 self.session_changed();

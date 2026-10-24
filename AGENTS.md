@@ -35,6 +35,10 @@ This file is the contract for anyone, human or AI, changing HakuCX. Read it befo
 | GX Lights | `crates/haku-lights` (effects, Razer, OpenRGB, meter); driver thread `crates/hakucx/src/lights.rs`; browser glue `browser/gx_lights.rs` |
 | Media: miniplayer, pop out, page media script | `crates/hakucx/src/browser/media.rs`, `media.js`, `popout.rs`, `popout/`; GStreamer files in `crates/hakucx/build.rs`; see `docs/MEDIA.md` |
 | My Flow | `crates/haku-core/src/flow.rs` (protocol), `crates/hakucx/src/flow_server.rs`, `browser/flow.rs`, phone page `ui/flow.html` + `ui/src/flow/`; keep `docs/MY-FLOW.md` in step |
+| Search pop-up, gestures, Paste Protect, battery saver, tab previews | `crates/haku-core/src/selection.rs` (conversions); `crates/hakucx/src/browser/selection.rs`, `gestures.rs`, `paste_protect.rs` (also the page clipboard), `power.rs`, `thumbs.rs` |
+| Smart home (MQTT) | `crates/hakucx/src/smart_home.rs` (client thread), `browser/home.rs` |
+| Playground experiments | `EARLY_BIRD_FEATURES` in `crates/haku-core/src/settings.rs` and `EARLY_BIRD` in `ui/src/lib/catalog.ts`; every flag must gate real code via `EarlyBird::is_on` |
+| Site compatibility and Opera GX gap list | `docs/COMPAT.md`, `docs/research/MISSING_FEATURES.md`; update both when a feature or engine gap changes |
 | Extension API methods and runtime | `crates/hakucx/src/browser/ext_api.rs`, `browser/extensions.rs`, `extensions/api.js`; keep `docs/EXTENSIONS.md` in step |
 
 ## Build and check

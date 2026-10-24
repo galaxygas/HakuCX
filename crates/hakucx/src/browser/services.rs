@@ -9,6 +9,7 @@ use std::sync::mpsc::Sender;
 use std::time::{Duration, Instant};
 
 use haku_core::ipc::{Event, Metrics, TabMetric, WindowAction};
+use haku_core::session::TabId;
 use log::{info, warn};
 
 use super::Browser;
@@ -111,6 +112,7 @@ impl Browser {
         self.reload_filters();
         self.apply_limits();
         self.apply_music();
+        self.remove_unused_permissions();
         // A 1 s heartbeat drives GX Control metrics and download speed readouts.
         let wake = self.wake.clone();
         std::thread::Builder::new()
@@ -178,7 +180,8 @@ impl Browser {
         let (on, track, volume) = {
             let s = self.settings.borrow();
             (
-                s.sounds.background_music,
+                // Battery saver pauses background music.
+                s.sounds.background_music && !self.battery_saver_on(),
                 s.sounds.music_track.clone(),
                 s.sounds.music_volume as f32 / 100.0,
             )
@@ -224,6 +227,11 @@ impl Browser {
             .map(|p| (p.cpu_usage() / cores, p.memory() as f32 / 1_048_576.0))
             .unwrap_or((0.0, 0.0));
         let system_memory_mb = state.system.total_memory() as f32 / 1_048_576.0;
+        let used_fraction = if state.system.total_memory() > 0 {
+            state.system.used_memory() as f32 / state.system.total_memory() as f32
+        } else {
+            0.0
+        };
         let elapsed = state.last.elapsed().as_secs_f32().max(0.001);
         let bytes = self
             .download_engine
@@ -248,6 +256,9 @@ impl Browser {
         if control.ram_limiter && memory_mb > control.ram_limit_mb as f32 {
             self.snooze_for_memory();
         }
+        self.power_tick();
+        self.snooze_inactive_tabs(used_fraction);
+        self.thumb_tick();
         // Servo runs pages in this process unless multi-process mode is on, so per-tab numbers
         // are not separable; the list is left empty rather than invented.
         let per_tab: Vec<TabMetric> = Vec::new();
@@ -262,6 +273,88 @@ impl Browser {
                 limits_enforced: crate::limits::enforced(),
             },
         });
+    }
+
+    /// "Automatically remove permissions from unused sites" (Privacy & security): at start,
+    /// take back what was allowed to sites not opened for 90 days.
+    fn remove_unused_permissions(&self) {
+        if self.private
+            || !self
+                .settings
+                .borrow()
+                .privacy
+                .auto_remove_unused_permissions
+        {
+            return;
+        }
+        let changed = self
+            .settings
+            .borrow_mut()
+            .permissions
+            .remove_unused(haku_core::now_ms(), haku_core::settings::UNUSED_SITE_MS);
+        if !changed.is_empty() {
+            info!(
+                "removed permissions from {} sites not used for 90 days",
+                changed.len()
+            );
+            self.settings_changed();
+        }
+    }
+
+    /// Tab snoozing (Settings → Appearance → User interface): background tabs unused for the
+    /// set time give up their page (sooner while battery saver is on), and one more goes each
+    /// second while the computer's memory is nearly full. Pinned, audible and visible tabs are
+    /// never snoozed; a snoozed tab loads again when shown.
+    fn snooze_inactive_tabs(&self, used_memory: f32) {
+        let (inactive, minutes, pressure) = {
+            let s = self.settings.borrow();
+            (
+                s.tabs.snooze_inactive,
+                s.tabs.snooze_after_minutes.max(1) as i64,
+                s.tabs.snooze_on_memory_pressure,
+            )
+        };
+        let saver = self.battery_saver_on();
+        let limit = match (inactive, saver) {
+            (true, true) => Some(minutes.min(super::power::SAVER_SNOOZE_MINUTES)),
+            (true, false) => Some(minutes),
+            (false, true) => Some(super::power::SAVER_SNOOZE_MINUTES),
+            (false, false) => None,
+        };
+        if let Some(limit) = limit {
+            let now = haku_core::now_ms();
+            let due: Vec<TabId> = {
+                let session = self.session.borrow();
+                let views = self.views.borrow();
+                let visible: Vec<TabId> = match &session.split {
+                    Some((a, b)) => vec![a.clone(), b.clone()],
+                    None => session.active_tab_id().cloned().into_iter().collect(),
+                };
+                session
+                    .tabs
+                    .iter()
+                    .filter(|t| !t.pinned && !t.snoozed && !visible.contains(&t.id))
+                    .filter(|t| now - t.last_active > limit * 60_000)
+                    .filter(|t| {
+                        views
+                            .get(&t.id)
+                            .is_some_and(|v| v.webview.is_some() && !v.audible)
+                    })
+                    .filter(|t| self.popout_source().as_ref() != Some(&t.id))
+                    .map(|t| t.id.clone())
+                    .collect()
+            };
+            let mut changed = false;
+            for tab in due {
+                changed |= self.session.borrow_mut().snooze(&tab);
+            }
+            if changed {
+                self.session_changed();
+            }
+        }
+        if pressure && used_memory > 0.9 {
+            self.snooze_for_memory();
+        }
     }
 
     /// Soft RAM limit: snooze the least recently used background tab that has a live page.

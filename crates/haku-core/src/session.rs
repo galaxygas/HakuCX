@@ -341,10 +341,20 @@ impl Session {
     }
 
     pub fn activate(&mut self, id: &str) -> bool {
+        if self.tab(id).is_none() {
+            return false;
+        }
+        // The tab being left was in use until now (tab snoozing counts from here).
+        let now = now_ms();
+        if let Some(previous) = self.active_tab_id().cloned()
+            && let Some(t) = self.tab_mut(&previous)
+        {
+            t.last_active = now;
+        }
         let Some(tab) = self.tab_mut(id) else {
             return false;
         };
-        tab.last_active = now_ms();
+        tab.last_active = now;
         tab.snoozed = false;
         let workspace = tab.workspace_id.clone();
         // Activating a tab in a collapsed island expands it.

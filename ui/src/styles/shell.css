@@ -1017,3 +1017,76 @@
   margin-bottom: 4px;
   border-bottom: 1px solid var(--hx-line);
 }
+
+/* ---- tab hover card */
+.tab-card {
+  position: fixed;
+  z-index: 60;
+  pointer-events: none;
+  overflow: hidden;
+  border-radius: 10px;
+  background: var(--hx-panel);
+  border: 1px solid var(--hx-line-strong);
+  box-shadow: 0 10px 28px var(--hx-shadow);
+  animation: fade-in 0.12s ease-out;
+}
+.tab-card-thumb {
+  display: block;
+  width: 100%;
+  max-height: 180px;
+  object-fit: cover;
+  object-position: top;
+  border-bottom: 1px solid var(--hx-line);
+}
+.tab-card-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 8px 10px;
+  min-width: 0;
+}
+.tab-card-title,
+.tab-card-url {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.tab-card-url,
+.tab-card-status {
+  font-size: 12px;
+  color: var(--hx-muted);
+}
+.tab-card-status {
+  color: var(--hx-accent);
+}
+
+/* A permission request waiting behind its icon (quieter messaging). */
+.quiet-permission {
+  color: var(--hx-accent);
+  animation: pulse-glow 1.6s ease-in-out 3;
+}
+
+/* ---- split screen by drag and drop */
+.split-drop {
+  position: fixed;
+  z-index: 70;
+  display: flex;
+  gap: 6px;
+  padding: 6px;
+  background: rgba(0, 0, 0, 0.35);
+}
+.split-drop-half {
+  flex: 1;
+  display: grid;
+  place-items: center;
+  border-radius: 10px;
+  border: 2px dashed var(--hx-line-strong);
+  color: var(--hx-muted);
+  font-weight: 600;
+}
+.split-drop-half.on {
+  border-style: solid;
+  border-color: var(--hx-accent);
+  background: var(--hx-accent-soft);
+  color: var(--hx-text);
+}

@@ -554,3 +554,22 @@ kbd {
     box-shadow: 0 0 22px var(--hx-accent-glow);
   }
 }
+
+/* Accessibility: high-contrast browser interface. Text and lines at full strength, solid
+   surfaces instead of see-through ones, and a strong focus ring. */
+.high-contrast {
+  --hx-muted: var(--hx-text, #fff) !important;
+  --hx-dim: var(--hx-text, #fff) !important;
+  --hx-line: rgba(255, 255, 255, 0.45) !important;
+  --hx-line-strong: rgba(255, 255, 255, 0.8) !important;
+  --hx-ui-opacity: 1 !important;
+  --hx-elements-bg: 1 !important;
+}
+.high-contrast.light {
+  --hx-line: rgba(0, 0, 0, 0.5) !important;
+  --hx-line-strong: rgba(0, 0, 0, 0.85) !important;
+}
+.high-contrast :focus-visible {
+  outline: 2px solid var(--hx-accent) !important;
+  outline-offset: 1px;
+}

@@ -281,8 +281,14 @@ impl Browser {
 
     fn focus(&self, pane: Option<Pane>) {
         self.keyboard_pane.set(pane);
+        // While Easy Files offers downloads for a page's file request, the page keeps its
+        // focus: the engine cancels a file request when its page is blurred.
+        let keep_page = pane.is_none() && self.file_request_open();
         for p in [Pane::Main, Pane::Split, Pane::Panel, Pane::Popup] {
             if let Some(w) = self.pane_webview(p) {
+                if keep_page && w.focused() {
+                    continue;
+                }
                 w.set_focused(pane == Some(p));
             }
         }
@@ -314,6 +320,7 @@ impl Browser {
             WindowEvent::ModifiersChanged(m) => self.modifiers.set(m.state()),
             WindowEvent::CursorMoved { position, .. } => {
                 self.cursor.set(position);
+                self.gesture_move(position);
                 let previous = self.pointer_target.get();
                 let (target, webview, point) = self.hit_test();
                 if previous != target
@@ -358,6 +365,9 @@ impl Browser {
                     {
                         let _ = self.window.drag_resize_window(dir);
                     }
+                    return;
+                }
+                if self.gesture_button(target, &webview, point, state, button) {
                     return;
                 }
                 if state == ElementState::Pressed {
@@ -718,7 +728,13 @@ impl Browser {
                 }
             }
             "easy-setup" => open("easy-setup"),
-            "quit" => open("quit"),
+            "quit" => {
+                if self.should_confirm(false) {
+                    open("quit");
+                } else {
+                    self.window_action(WindowAction::Quit);
+                }
+            }
             _ => {}
         }
     }

@@ -1167,7 +1167,12 @@ pub struct Permissions {
     /// Origin -> permission kind -> setting.
     pub sites: BTreeMap<String, BTreeMap<String, PermissionSetting>>,
     pub quiet_requests: bool,
+    /// Origin -> when a page from it last loaded (ms), for sites that have settings here.
+    pub last_used: BTreeMap<String, i64>,
 }
+
+/// "Automatically remove permissions from unused sites": after this long without a visit.
+pub const UNUSED_SITE_MS: i64 = 90 * 24 * 60 * 60 * 1000;
 
 /// Every permission kind shown in Opera GX's per-site settings page, in the same order.
 pub const PERMISSION_KINDS: &[&str] = &[
@@ -1227,6 +1232,7 @@ impl Default for Permissions {
             defaults,
             sites: BTreeMap::new(),
             quiet_requests: true,
+            last_used: BTreeMap::new(),
         }
     }
 }
@@ -1240,6 +1246,79 @@ impl Permissions {
             .or_else(|| self.defaults.get(kind))
             .copied()
             .unwrap_or(PermissionSetting::Ask)
+    }
+
+    /// Note that a page from `origin` loaded. Returns whether anything was recorded (only
+    /// origins with settings are tracked).
+    pub fn note_used(&mut self, origin: &str, now: i64) -> bool {
+        if !self.sites.contains_key(origin) {
+            return false;
+        }
+        let previous = self.last_used.insert(origin.to_owned(), now);
+        // Record at most once an hour per site.
+        previous.is_none_or(|t| now - t > 60 * 60 * 1000)
+    }
+
+    /// Take back what was allowed to sites not visited for `max_age`; blocks stay. Sites never
+    /// seen since tracking began start their clock now. Returns the origins changed.
+    pub fn remove_unused(&mut self, now: i64, max_age: i64) -> Vec<String> {
+        let mut changed = Vec::new();
+        for (origin, kinds) in self.sites.iter_mut() {
+            let seen = *self.last_used.entry(origin.clone()).or_insert(now);
+            if now - seen > max_age && kinds.values().any(|s| *s == PermissionSetting::Allow) {
+                kinds.retain(|_, s| *s != PermissionSetting::Allow);
+                changed.push(origin.clone());
+            }
+        }
+        self.sites.retain(|_, kinds| !kinds.is_empty());
+        let sites = &self.sites;
+        self.last_used
+            .retain(|origin, _| sites.contains_key(origin));
+        changed
+    }
+}
+
+#[cfg(test)]
+mod permission_tests {
+    use super::*;
+
+    #[test]
+    fn unused_sites_lose_what_they_were_allowed() {
+        let mut p = Permissions::default();
+        let site = |kinds: &[(&str, PermissionSetting)]| {
+            kinds
+                .iter()
+                .map(|(k, s)| (k.to_string(), *s))
+                .collect::<BTreeMap<_, _>>()
+        };
+        p.sites.insert(
+            "https://old.example".into(),
+            site(&[
+                ("camera", PermissionSetting::Allow),
+                ("notifications", PermissionSetting::Block),
+            ]),
+        );
+        p.sites.insert(
+            "https://new.example".into(),
+            site(&[("camera", PermissionSetting::Allow)]),
+        );
+        p.sites.insert(
+            "https://fresh.example".into(),
+            site(&[("camera", PermissionSetting::Allow)]),
+        );
+        p.last_used.insert("https://old.example".into(), 0);
+        p.last_used.insert("https://new.example".into(), 1_000);
+        // fresh.example has never been seen: its clock starts now.
+        let now = UNUSED_SITE_MS + 500;
+        let changed = p.remove_unused(now, UNUSED_SITE_MS);
+        assert_eq!(changed, vec!["https://old.example".to_string()]);
+        assert_eq!(p.sites["https://old.example"].len(), 1, "the block stays");
+        assert!(p.sites.contains_key("https://new.example"));
+        assert_eq!(p.last_used["https://fresh.example"], now);
+        // A visit resets the clock; sites without settings are not tracked.
+        assert!(p.note_used("https://new.example", now));
+        assert!(!p.note_used("https://new.example", now + 1));
+        assert!(!p.note_used("https://other.example", now));
     }
 }
 
@@ -1742,17 +1821,10 @@ impl Default for Shortcuts {
 // Early Bird / Playground
 // ---------------------------------------------------------------------------------------------
 
-/// Experimental features. Each flag gates real code; nothing here is cosmetic.
+/// Experimental features. Each flag gates real code (`EarlyBird::is_on`); nothing here is
+/// cosmetic. Mirrored by `EARLY_BIRD` in `ui/src/lib/catalog.ts`.
 pub const EARLY_BIRD_FEATURES: &[(&str, &str)] = &[
-    ("advanced-audio-controls", "Advanced Audio Controls"),
-    ("show-blocked-stats", "Show blocked stats"),
-    ("extended-diagnostics", "Extended UI Diagnostics"),
-    ("daily-wallpapers", "Daily wallpapers"),
-    ("guest-tabs", "Guest Tabs"),
-    ("live-wallpapers", "Live Wallpapers"),
-    ("improved-video-skip", "Improved Video Skip Button"),
-    ("tab-emojis", "Tab emojis"),
-    ("vertical-tabs", "Vertical tabs"),
+    ("fake-my-history", "Fake My History"),
     ("panic-grass", "Touch grass after panic"),
 ];
 

@@ -18,18 +18,24 @@ mod delegate;
 mod ext_api;
 mod extensions;
 mod flow;
+mod gestures;
 mod gx_lights;
+mod home;
 mod input;
 mod media;
 mod page_scripts;
 mod panels;
+mod paste_protect;
 pub mod popout;
+mod power;
 mod render;
+mod selection;
 mod services;
 mod suggest;
 mod sync;
 mod system;
 mod tabs;
+mod thumbs;
 mod tools;
 mod vault;
 
@@ -196,6 +202,18 @@ pub struct Browser {
     update: RefCell<system::UpdateState>,
     /// GX Lights (see `gx_lights.rs`).
     lights: RefCell<gx_lights::LightsState>,
+    /// Battery saver and the power source (see `power.rs`).
+    power: RefCell<haku_core::ipc::PowerStatus>,
+    /// Smart home MQTT (see `home.rs`).
+    home: RefCell<home::HomeState>,
+    /// Paste Protect (see `paste_protect.rs`).
+    paste_guard: RefCell<paste_protect::PasteGuard>,
+    /// The search pop-up over selected text (see `selection.rs`).
+    selection: RefCell<selection::SelectionState>,
+    /// Mouse and rocker gestures in progress (see `gestures.rs`).
+    gesture: RefCell<gestures::GestureState>,
+    /// Tab previews (see `thumbs.rs`).
+    thumbs: RefCell<thumbs::Thumbs>,
     /// My Flow (see `flow.rs`).
     flow: RefCell<flow::FlowState>,
     /// Media across tabs and the Player (see `media.rs`).
@@ -364,6 +382,12 @@ impl Browser {
             lights: RefCell::default(),
             media: RefCell::default(),
             flow: RefCell::default(),
+            power: RefCell::default(),
+            thumbs: RefCell::default(),
+            gesture: RefCell::default(),
+            selection: RefCell::default(),
+            paste_guard: RefCell::default(),
+            home: RefCell::default(),
             popout: RefCell::new(None),
             popout_request: RefCell::new(None),
             popout_counter: Cell::new(0),
@@ -388,6 +412,7 @@ impl Browser {
         browser.apply_run_at_login();
         browser.lights_apply();
         browser.flow_apply();
+        browser.smart_home_apply();
         browser.load_extensions();
         for dir in &options.load_extensions {
             browser.ext_load_for_session(dir);
@@ -407,10 +432,16 @@ impl Browser {
     }
 
     /// Ask before quitting with several tabs open (Opera GX "Warn on quitting").
-    pub fn should_confirm_quit(&self) -> bool {
-        self.ui_ready.get()
-            && self.settings.borrow().tabs.warn_quit
-            && self.session.borrow().tabs.len() > 1
+    /// Ask before closing with several tabs open: `window` for closing the window (its close
+    /// button, Alt+F4), otherwise for quitting (Exit, Ctrl+Shift+Q).
+    pub fn should_confirm(&self, window: bool) -> bool {
+        let settings = self.settings.borrow();
+        let wanted = if window {
+            settings.tabs.warn_close_window
+        } else {
+            settings.tabs.warn_quit
+        };
+        self.ui_ready.get() && wanted && self.session.borrow().tabs.len() > 1
     }
 
     pub fn window_resized(&self, size: winit::dpi::PhysicalSize<u32>) {
@@ -606,6 +637,8 @@ impl Browser {
         self.update_emit();
         self.lights_emit();
         self.flow_emit();
+        self.power_emit();
+        self.smart_home_emit();
         self.crash_notice();
     }
 
@@ -639,6 +672,8 @@ impl Browser {
         self.lights_apply();
         self.popout_settings_changed();
         self.flow_apply();
+        self.power_tick();
+        self.smart_home_apply();
     }
 
     pub(crate) fn bookmarks_changed(&self) {
@@ -834,6 +869,7 @@ impl Browser {
         info!("shutting down");
         self.lights_shutdown();
         self.flow_shutdown();
+        self.smart_home_shutdown();
         drop(self.popout.borrow_mut().take());
         if self.panic_active.get()
             && let Some(saved) = self.panic_restore.borrow_mut().take()

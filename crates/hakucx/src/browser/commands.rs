@@ -289,15 +289,18 @@ impl Browser {
             }
             Command::ZoomStep { delta } => {
                 if let Some(tab) = self.active_tab_id() {
+                    // Steps go through the familiar absolute levels (90%, 100%, 110%...).
+                    let default = self.default_zoom();
                     let current = self
                         .session
                         .borrow()
                         .tab(&tab)
                         .map(|t| t.zoom)
-                        .unwrap_or(1.0);
+                        .unwrap_or(1.0)
+                        * default;
                     let next = match delta {
                         0 => 1.0,
-                        d => zoom_step(current, d > 0),
+                        d => zoom_step(current, d > 0) / default,
                     };
                     self.set_tab_zoom(&tab, next);
                 }
@@ -571,6 +574,19 @@ impl Browser {
             Command::DeleteHistoryRange { from, to } => {
                 let _ = self.history.delete_range(from, to);
             }
+            Command::RedeemHistory => {
+                let on = self.settings.borrow().early_bird.is_on("fake-my-history");
+                if on {
+                    match self.history.redeem(haku_core::now_ms()) {
+                        Ok(_) => self.emit(Event::Toast {
+                            text: "Soul redeemed: your history now shows only wholesome pages."
+                                .into(),
+                            kind: "info".into(),
+                        }),
+                        Err(e) => warn!("redeem history: {e}"),
+                    }
+                }
+            }
             Command::Suggest { request, text } => {
                 let items = self.suggestions(&text);
                 self.emit(Event::Suggestions {
@@ -626,7 +642,9 @@ impl Browser {
                 username,
                 password,
             } => self.answer_auth(id, username, password),
-            Command::FilePickerResponse { .. } => {}
+            Command::FilePickerResponse { id, paths, browse } => {
+                self.answer_file_picker(id, paths, browse)
+            }
 
             // ---------------------------------------------------------- data
             Command::ClearBrowsingData {
@@ -826,7 +844,12 @@ impl Browser {
     /// Side effects of settings that live outside the settings document.
     fn after_settings_change(&self, patch: &serde_json::Value) {
         let touches = |section: &str| patch.get(section).is_some();
-        if touches("features") || touches("privacy") {
+        if touches("features")
+            || touches("privacy")
+            || touches("video")
+            || touches("accessibility")
+            || touches("appearance")
+        {
             self.restyle_all_pages();
         }
         if touches("privacy") {
@@ -835,12 +858,19 @@ impl Browser {
         if touches("control") {
             self.apply_limits();
         }
+        if patch.pointer("/appearance/pageZoom").is_some() {
+            self.apply_default_zoom();
+            for meta in self.all_tab_meta() {
+                self.emit(haku_core::ipc::Event::TabMeta { meta });
+            }
+        }
     }
 
+    /// `zoom` is relative to the default page zoom (1.0 = the default).
     fn set_tab_zoom(&self, tab: &str, zoom: f32) {
         let zoom = self.session.borrow_mut().set_zoom(tab, zoom);
         if let Some(w) = self.webview_for_tab(tab) {
-            w.set_page_zoom(zoom);
+            w.set_page_zoom(zoom * self.default_zoom());
         }
         self.session_dirty.set(true);
         self.after_tab_update(&tab.to_owned());
@@ -1225,12 +1255,20 @@ impl Browser {
             self.panic_active.set(false);
             self.emit(Event::Panic { active: false });
             self.session_changed();
+            if self.settings.borrow().early_bird.is_on("panic-grass") {
+                self.emit(Event::Toast {
+                    text: "That was close. Maybe step away for five minutes and touch some grass."
+                        .into(),
+                    kind: "info".into(),
+                });
+            }
             return;
         }
         let urls = self.settings.borrow().panic.urls.clone();
         let Some(url) = urls.first().cloned() else {
             return;
         };
+        self.dismiss_popout();
         *self.panic_restore.borrow_mut() = Some(self.session.borrow().clone());
         let mut fresh = haku_core::session::Session::default();
         fresh.tabs.clear();
