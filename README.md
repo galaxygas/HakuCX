@@ -81,6 +81,9 @@ See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for how the pieces fit together
 | M6 | WebExtensions runtime (Chrome MV2/MV3, Firefox) | done (see [EXTENSIONS.md](docs/EXTENSIONS.md) for what each API supports) |
 | M7 | Mods, Corner, AI, password manager, sync, My Flow | done (see [PASSWORDS-AND-SYNC.md](docs/PASSWORDS-AND-SYNC.md) and [MY-FLOW.md](docs/MY-FLOW.md)) |
 | M8 | Installer, updater, default-browser integration | done (see [RELEASING.md](docs/RELEASING.md)) |
+| M9 | Verification pass, site compatibility, feature gap research | done (see [COMPAT.md](docs/COMPAT.md) and [MISSING_FEATURES.md](docs/research/MISSING_FEATURES.md)) |
+
+What HakuCX still lacks compared with Opera GX, and why, is listed feature by feature in [docs/research/MISSING_FEATURES.md](docs/research/MISSING_FEATURES.md), with a prioritized roadmap.
 
 ## Contributing
 

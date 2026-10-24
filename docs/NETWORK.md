@@ -17,6 +17,8 @@ Requests made by HakuCX code go out through `reqwest` (filter lists, downloads, 
 | AI assistant | The provider you configure: `api.anthropic.com`, your OpenAI-compatible endpoint, or your local Ollama | Only when you send a message | Settings → AI (provider "None" or the assistant off) |
 | Downloads | The site you download from (with that site's cookies) | When you download a file | — |
 | Updates | `api.github.com` (latest release of `galaxygas/HakuCX`), then `github.com` / `objects.githubusercontent.com` for the installer and its signature when there is a new version | About a minute after start and then daily, only in copies built with the update key; or when you click Check for updates | Settings → Update → Update automatically |
+| Search pop-up currency conversion | `api.frankfurter.app` (European Central Bank reference rates) | When you select a price on a page and the cached rates are older than a day; never in private windows | Settings → Search engine → Search pop-up (turn it off) |
+| Translate page | `translate.google.com`, which loads the page and shows it translated | Only when you choose Translate page in the page menu | Don't use it |
 | Page source view | The page's own host, fetched again without your cookies | When you open View page source | — |
 
 Sidebar web panels (Twitch, Discord, WhatsApp, ...) are ordinary pages: they load only when you open them, and stay loaded until you close the panel.
@@ -31,4 +33,4 @@ My Flow does not use the internet: it listens on your local network (port 47652,
 
 The video pop out loads the video's own address from the site it came from, like the page did.
 
-Not built yet, and listed here when they land: MQTT smart home (your broker).
+Smart home talks only to the MQTT broker you enter, normally on your own network (plain MQTT, default port 1883), only while it is on (Settings → Smart home). HakuCX publishes retained status, theme color and what is playing, and subscribes to nothing.

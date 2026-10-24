@@ -63,7 +63,14 @@ The vault and sync formats are engine-independent (`haku-core`); the browser sup
 - **Updates.** The updater (`browser/system.rs`, `haku_core::update`) verifies minisign signatures against a key embedded at build time from `packaging/update-key.pub`.
 - **Program icon.** The icon is drawn in code (`haku-brand`) and embedded in `hakucx.exe` with version information by the build script.
 - **Second window: video pop out.** `browser/popout.rs` owns a second winit window with its own `WindowRenderingContext`; its webview renders straight into it (it is the only thing there). The app routes that window's events by `WindowId`, and the window is created from the event loop when a page asks for a pop out. See `docs/MEDIA.md`.
-- **Background threads.** GX Lights (`lights.rs`) and the My Flow server (`flow_server.rs`) run on their own threads and hand results to the UI thread through the browser's background queue; they never touch Servo.
+- **Background threads.** GX Lights (`lights.rs`), the smart home MQTT client (`smart_home.rs`) and the My Flow server (`flow_server.rs`) run on their own threads and hand results to the UI thread through the browser's background queue; they never touch Servo.
+- **Page features driven from the core.**
+  - **Search pop-up.** The page script reports a selection; `browser/selection.rs` adds conversions from `haku_core::selection` and places the pop-up by the selecting drag.
+  - **Gestures.** `browser/gestures.rs` holds back the right-button press until it knows whether it was a gesture.
+  - **Page clipboard and Paste Protect.** Both are in `browser/paste_protect.rs`, which is Servo's `ClipboardDelegate`.
+  - **Battery saver.** `browser/power.rs` handles battery saver.
+  - **Tab previews.** `browser/thumbs.rs` takes a screenshot of the visible tab at most every 20 seconds and encodes it off the UI thread.
+  - **Easy Files.** It answers a page's file request with recent downloads (`browser/controls.rs`); the page keeps focus meanwhile, because the engine cancels a file request when its page is blurred.
 - **Media.** Servo's GStreamer backend plays audio and video; `build.rs` places the plugins and the DLLs they import next to the executable. A page script (`browser/media.js`) reports what each tab plays (with the page's Media Session title, artist and artwork) and takes play/pause/next/previous/pop-out requests.
 
 ## UI state
