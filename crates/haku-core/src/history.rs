@@ -378,6 +378,21 @@ impl History {
         Ok(n)
     }
 
+    /// Fake My History (a Playground experiment): replace all history with the wholesome
+    /// pages in [`WHOLESOME`], visited over the last two weeks before `now`.
+    pub fn redeem(&self, now: i64) -> rusqlite::Result<usize> {
+        self.clear()?;
+        const DAY: i64 = 86_400_000;
+        let n = WHOLESOME.len() as i64;
+        for (i, (url, title)) in WHOLESOME.iter().enumerate() {
+            // Spread over 14 days, newest first, at different times of day.
+            let i = i as i64;
+            let at = now - i * 14 * DAY / n - (i % 5) * 3_600_000;
+            self.record_visit(url, title, Transition::Link, at)?;
+        }
+        Ok(WHOLESOME.len())
+    }
+
     pub fn clear(&self) -> rusqlite::Result<()> {
         self.conn
             .execute_batch("DELETE FROM visits; DELETE FROM urls;")
@@ -438,11 +453,67 @@ fn frecency(s: &UrlStat, now: i64, first_word: &str) -> f64 {
     score
 }
 
+/// What Fake My History leaves behind: real pages a model citizen would visit.
+pub const WHOLESOME: &[(&str, &str)] = &[
+    (
+        "https://www.redcross.org/give-blood.html",
+        "Give Blood | American Red Cross",
+    ),
+    ("https://en.wikipedia.org/wiki/Cat", "Cat - Wikipedia"),
+    (
+        "https://www.khanacademy.org/math/algebra",
+        "Algebra 1 | Khan Academy",
+    ),
+    (
+        "https://www.gutenberg.org/ebooks/1342",
+        "Pride and Prejudice by Jane Austen | Project Gutenberg",
+    ),
+    (
+        "https://en.wikipedia.org/wiki/Origami",
+        "Origami - Wikipedia",
+    ),
+    ("https://www.nasa.gov/", "NASA"),
+    (
+        "https://en.wikipedia.org/wiki/Birdwatching",
+        "Birdwatching - Wikipedia",
+    ),
+    ("https://www.duolingo.com/", "Duolingo"),
+    (
+        "https://en.wikipedia.org/wiki/Vegetable_soup",
+        "Vegetable soup - Wikipedia",
+    ),
+    (
+        "https://en.wikipedia.org/wiki/Houseplant",
+        "Houseplant - Wikipedia",
+    ),
+];
+
 #[cfg(test)]
 mod tests {
     use super::*;
 
     const DAY: i64 = 86_400_000;
+
+    #[test]
+    fn redeem_replaces_everything() {
+        let h = History::in_memory().unwrap();
+        h.record_visit(
+            "https://example.com/secret",
+            "Secret",
+            Transition::Typed,
+            1_000,
+        )
+        .unwrap();
+        let now = 100 * 86_400_000;
+        assert_eq!(h.redeem(now).unwrap(), WHOLESOME.len());
+        let all = h.query("", None, None, 100, 0).unwrap();
+        assert_eq!(all.len(), WHOLESOME.len());
+        assert!(all.iter().all(|v| v.url != "https://example.com/secret"));
+        assert!(
+            all.iter()
+                .all(|v| v.visited_at <= now && v.visited_at > now - 15 * 86_400_000)
+        );
+    }
 
     #[test]
     fn records_and_queries() {

@@ -574,6 +574,19 @@ impl Browser {
             Command::DeleteHistoryRange { from, to } => {
                 let _ = self.history.delete_range(from, to);
             }
+            Command::RedeemHistory => {
+                let on = self.settings.borrow().early_bird.is_on("fake-my-history");
+                if on {
+                    match self.history.redeem(haku_core::now_ms()) {
+                        Ok(_) => self.emit(Event::Toast {
+                            text: "Soul redeemed: your history now shows only wholesome pages."
+                                .into(),
+                            kind: "info".into(),
+                        }),
+                        Err(e) => warn!("redeem history: {e}"),
+                    }
+                }
+            }
             Command::Suggest { request, text } => {
                 let items = self.suggestions(&text);
                 self.emit(Event::Suggestions {
@@ -1242,6 +1255,13 @@ impl Browser {
             self.panic_active.set(false);
             self.emit(Event::Panic { active: false });
             self.session_changed();
+            if self.settings.borrow().early_bird.is_on("panic-grass") {
+                self.emit(Event::Toast {
+                    text: "That was close. Maybe step away for five minutes and touch some grass."
+                        .into(),
+                    kind: "info".into(),
+                });
+            }
             return;
         }
         let urls = self.settings.borrow().panic.urls.clone();

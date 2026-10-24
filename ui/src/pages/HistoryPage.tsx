@@ -19,6 +19,7 @@ export function HistoryPage() {
   const [limit, setLimit] = useState(300);
   const [selected, setSelected] = useState<Set<number>>(new Set());
   const openModal = useStore((s) => s.openModal);
+  const redeem = useStore((s) => !!s.settings?.earlyBird.enabled && !!s.settings?.earlyBird.features["fake-my-history"]);
   const day = useMemo(() => {
     const d = new Date();
     return new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
@@ -64,6 +65,16 @@ export function HistoryPage() {
           Forget today
         </Button>
         <Button onClick={() => openModal({ kind: "clear-data" })}>Delete browsing data...</Button>
+        {redeem && (
+          <Button
+            onClick={() => {
+              send({ type: "redeem-history" });
+              setLimit((l) => l + 1);
+            }}
+          >
+            Redeem my soul
+          </Button>
+        )}
       </aside>
       <section className="hub-main">
         <div className="row">

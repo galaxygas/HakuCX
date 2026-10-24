@@ -340,6 +340,8 @@ pub enum Command {
         from: i64,
         to: i64,
     },
+    /// Fake My History: replace all history with wholesome pages (Playground experiment).
+    RedeemHistory,
     Suggest {
         request: u32,
         text: String,

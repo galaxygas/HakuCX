@@ -178,15 +178,10 @@ export const ENGINE_PERMISSIONS = new Set([
   "gamepad",
 ]);
 
+/** Playground experiments. Mirrors `EARLY_BIRD_FEATURES` in `crates/haku-core/src/settings.rs`. */
 export const EARLY_BIRD = [
-  { id: "advanced-audio-controls", name: "Advanced Audio Controls", description: "Per-tab volume sliders in the tab context menu." },
-  { id: "show-blocked-stats", name: "Show blocked stats", description: "Shows how many ads and trackers were blocked, per page and in total." },
-  { id: "daily-wallpapers", name: "Daily wallpapers", description: "A new built-in wallpaper every day." },
-  { id: "guest-tabs", name: "Guest Tabs", description: "Open a tab that shares nothing with your profile." },
-  { id: "live-wallpapers", name: "Live Wallpapers", description: "Animated wallpapers that react to the music visualizer." },
-  { id: "tab-emojis", name: "Tab emojis", description: "Pick an emoji for any tab from its context menu." },
-  { id: "vertical-tabs", name: "Vertical tabs", description: "Show tabs in a column next to the sidebar." },
-  { id: "panic-grass", name: "Touch grass after panic", description: "After using the panic button, suggest a short break." },
+  { id: "fake-my-history", name: "Fake My History", description: "Adds \"Redeem my soul\" to History, which replaces everything with wholesome pages." },
+  { id: "panic-grass", name: "Touch grass after panic", description: "When you leave panic mode, suggests a short break." },
 ];
 
 /** Keyboard shortcuts with their defaults. Mirrors `SHORTCUTS` in `crates/hakucx/src/browser/input.rs`. */

@@ -1821,17 +1821,10 @@ impl Default for Shortcuts {
 // Early Bird / Playground
 // ---------------------------------------------------------------------------------------------
 
-/// Experimental features. Each flag gates real code; nothing here is cosmetic.
+/// Experimental features. Each flag gates real code (`EarlyBird::is_on`); nothing here is
+/// cosmetic. Mirrored by `EARLY_BIRD` in `ui/src/lib/catalog.ts`.
 pub const EARLY_BIRD_FEATURES: &[(&str, &str)] = &[
-    ("advanced-audio-controls", "Advanced Audio Controls"),
-    ("show-blocked-stats", "Show blocked stats"),
-    ("extended-diagnostics", "Extended UI Diagnostics"),
-    ("daily-wallpapers", "Daily wallpapers"),
-    ("guest-tabs", "Guest Tabs"),
-    ("live-wallpapers", "Live Wallpapers"),
-    ("improved-video-skip", "Improved Video Skip Button"),
-    ("tab-emojis", "Tab emojis"),
-    ("vertical-tabs", "Vertical tabs"),
+    ("fake-my-history", "Fake My History"),
     ("panic-grass", "Touch grass after panic"),
 ];
 
