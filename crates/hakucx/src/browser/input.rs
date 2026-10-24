@@ -281,8 +281,14 @@ impl Browser {
 
     fn focus(&self, pane: Option<Pane>) {
         self.keyboard_pane.set(pane);
+        // While Easy Files offers downloads for a page's file request, the page keeps its
+        // focus: the engine cancels a file request when its page is blurred.
+        let keep_page = pane.is_none() && self.file_request_open();
         for p in [Pane::Main, Pane::Split, Pane::Panel, Pane::Popup] {
             if let Some(w) = self.pane_webview(p) {
+                if keep_page && w.focused() {
+                    continue;
+                }
                 w.set_focused(pane == Some(p));
             }
         }

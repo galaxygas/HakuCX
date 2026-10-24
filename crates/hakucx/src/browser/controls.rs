@@ -271,11 +271,15 @@ impl Browser {
     }
 
     pub(crate) fn hide_control(&self, engine_id: EmbedderControlId) {
+        // A file request stays open until answered: choosing in Easy Files moves focus to the
+        // browser UI, and the engine hides the page's controls when the page loses focus.
         let ours = self
             .controls
             .borrow()
             .iter()
-            .find(|(_, c)| c.engine_id() == Some(&engine_id))
+            .find(|(_, c)| {
+                c.engine_id() == Some(&engine_id) && !matches!(c, PendingControl::File(..))
+            })
             .map(|(id, _)| *id);
         if let Some(id) = ours {
             self.controls.borrow_mut().remove(&id);
@@ -335,6 +339,14 @@ impl Browser {
         files.sort_by_key(|f| std::cmp::Reverse(f.downloaded_at));
         files.truncate(12);
         files
+    }
+
+    /// A page's file request is waiting for an answer in Easy Files.
+    pub(crate) fn file_request_open(&self) -> bool {
+        self.controls
+            .borrow()
+            .values()
+            .any(|c| matches!(c, PendingControl::File(..)))
     }
 
     /// The UI's answer to Easy Files.

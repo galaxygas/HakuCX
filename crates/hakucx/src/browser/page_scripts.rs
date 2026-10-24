@@ -128,19 +128,26 @@ const BOOTSTRAP: &str = r#"(() => {
   }, true);
   // Search pop-up: report text selected with the mouse (not in form fields), and when it
   // goes away. The browser decides whether to show anything.
+  // Servo's range rectangles cover the whole block, so the pop-up is placed by where the
+  // selecting drag started and ended.
   let selectionShown = false;
+  let pressAt = null;
+  document.addEventListener("mousedown", (event) => {
+    if (event.button === 0) pressAt = { x: event.clientX, y: event.clientY };
+  }, true);
   document.addEventListener("mouseup", (event) => {
     if (event.button !== 0) return;
+    const from = pressAt || { x: event.clientX, y: event.clientY };
+    const to = { x: event.clientX, y: event.clientY };
     setTimeout(() => {
       const sel = window.getSelection();
       const text = sel ? sel.toString().trim() : "";
       const active = document.activeElement;
       const editable = active && (active.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(active.tagName));
-      if (!text || text.length > 500 || editable || !sel.rangeCount) return;
-      const r = sel.getRangeAt(0).getBoundingClientRect();
-      if (r.width < 1 && r.height < 1) return;
+      if (!text || text.length > 500 || editable) return;
       selectionShown = true;
-      post({ type: "selection", text, rect: { x: r.left, y: r.top, w: r.width, h: r.height } });
+      const x = Math.min(from.x, to.x), y = Math.min(from.y, to.y) - 14;
+      post({ type: "selection", text, rect: { x, y, w: Math.abs(to.x - from.x), h: Math.abs(to.y - from.y) + 28 } });
     }, 0);
   }, true);
   const clearSelection = () => {

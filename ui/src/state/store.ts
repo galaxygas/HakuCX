@@ -169,6 +169,8 @@ type State = {
   addressFocus: number;
   addressOpen: boolean;
   splash: boolean;
+  /** With quieter permission messaging, the prompt waits behind an address bar icon. */
+  permissionOpen: boolean;
 };
 
 type Actions = {
@@ -187,8 +189,6 @@ type Actions = {
   toast(text: string, kind?: string, action?: Toast["action"]): void;
   shiftDialog(): void;
   shiftPermission(): void;
-  /** With quieter permission messaging, the prompt waits behind an address bar icon. */
-  permissionOpen: boolean;
   setPermissionOpen(open: boolean): void;
   clearSelect(): void;
   clearColor(): void;
@@ -610,7 +610,9 @@ export function selectModal(s: State): boolean {
       s.palette_open ||
       s.addressOpen ||
       s.dialogs.length ||
-      s.permissions.length ||
+      // A quiet permission request waits behind its address bar icon without blocking the page.
+      (s.permissions.length && (!s.settings?.permissions.quietRequests || s.permissionOpen)) ||
+      s.easyFiles ||
       s.extInstall ||
       s.extPermissions.length ||
       s.splash,
