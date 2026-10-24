@@ -8,6 +8,7 @@ import { send } from "../ipc/bridge";
 import { PERMISSION_LABELS } from "../lib/catalog";
 import { clsx, hostOf } from "../lib/util";
 import { DownloadRow } from "../panels/ListPanels";
+import { ExtIcon } from "../pages/ExtensionsPage";
 import { openInternal, useStore } from "../state/store";
 
 function PopupFrame({ children, className, align = "right", width = 340 }: { children: ReactNode; className?: string; align?: "left" | "right"; width?: number }) {
@@ -145,6 +146,9 @@ function DownloadsPopup() {
 }
 
 function ExtensionsPopup() {
+  const extensions = useStore((s) => s.extensions);
+  const anchor = useStore((s) => s.popupAnchor);
+  const usable = extensions.filter((e) => e.enabled && e.version);
   return (
     <PopupFrame width={340}>
       <div className="row popup-title">
@@ -153,7 +157,40 @@ function ExtensionsPopup() {
           <Icon name="x" size={14} />
         </button>
       </div>
-      <p className="muted">Extensions you install appear here, with buttons to pin them to the toolbar.</p>
+      {usable.length === 0 ? (
+        <p className="muted">Extensions you install appear here, with buttons to pin them to the toolbar.</p>
+      ) : (
+        <div className="ext-popup-list">
+          {usable.map((ext) => (
+            <div key={ext.id} className="ext-popup-row">
+              <button
+                className="menu-item grow"
+                title={ext.actionTitle}
+                disabled={!ext.actionEnabled}
+                onClick={() => {
+                  useStore.getState().openPopup(null);
+                  if (anchor) send({ type: "ext-action-click", id: ext.id, anchor });
+                }}
+              >
+                <ExtIcon src={ext.actionIcon ?? ext.icon} size={18} />
+                <span className="grow">{ext.name}</span>
+                {ext.badgeText && (
+                  <span className="ext-badge inline" style={{ background: ext.badgeColor }}>
+                    {ext.badgeText.slice(0, 4)}
+                  </span>
+                )}
+              </button>
+              <button
+                className={clsx("icon-btn", ext.pinned && "active")}
+                title={ext.pinned ? "Unpin from toolbar" : "Pin to toolbar"}
+                onClick={() => send({ type: "ext-set-pinned", id: ext.id, pinned: !ext.pinned })}
+              >
+                <Icon name="pin" size={14} />
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
       <button className="btn wide" onClick={() => { openInternal("haku://extensions/"); useStore.getState().openPopup(null); }}>
         <Icon name="external" size={14} /> Manage extensions
       </button>

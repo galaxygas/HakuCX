@@ -32,6 +32,8 @@ impl Browser {
         if !self.web_panels.borrow().contains_key(id) {
             let content_manager = Rc::new(UserContentManager::new(&self.servo));
             page_scripts::install(&content_manager, &self.settings.borrow());
+            self.add_extension_scripts(&content_manager);
+            self.remember_content_manager(content_manager.clone());
             let webview = WebViewBuilder::new(&self.servo, self.pane_context(Pane::Panel))
                 .url(parsed)
                 .hidpi_scale_factor(euclid::Scale::new(self.scale()))

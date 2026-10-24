@@ -1,0 +1,28 @@
+<!doctype html>
+<!-- This Source Code Form is subject to the terms of the Mozilla Public
+   - License, v. 2.0. If a copy of the MPL was not distributed with this
+   - file, You can obtain one at https://mozilla.org/MPL/2.0/. -->
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>HakuCX extension test</title>
+  <style>
+    body { font: 15px system-ui, sans-serif; margin: 40px; background: #fafafa; color: #222; }
+    td { padding: 4px 12px; border-bottom: 1px solid #ddd; }
+    .pass { color: #0a7d32; font-weight: 700; }
+    .fail { color: #c3002f; font-weight: 700; }
+  </style>
+  <script>window.loaded = {};</script>
+  <script src="blocked.js"></script>
+  <script src="dynamic-blocked.js"></script>
+  <script src="ff-cancel.js"></script>
+  <script src="allowed.js"></script>
+</head>
+<body>
+  <h1>Extension test page</h1>
+  <p>Select some text here and use the extension's context-menu item.</p>
+  <img id="redir" src="redirect-me.png" width="32" height="32" alt="">
+  <table id="results"></table>
+  <script src="report.js"></script>
+</body>
+</html>

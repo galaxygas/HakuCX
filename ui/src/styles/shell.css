@@ -872,3 +872,40 @@
   border-top-color: var(--hx-accent);
   animation: spin 0.8s linear infinite;
 }
+
+/* extension toolbar buttons */
+.ext-btn .ext-icon {
+  border-radius: 3px;
+}
+.ext-btn.dim .ext-icon {
+  filter: grayscale(1);
+  opacity: 0.55;
+}
+.ext-badge {
+  position: absolute;
+  right: 0;
+  bottom: 1px;
+  min-width: 14px;
+  height: 13px;
+  padding: 0 3px;
+  border-radius: 4px;
+  color: #fff;
+  font: 700 9px/13px var(--font-ui);
+  text-align: center;
+  pointer-events: none;
+}
+.ext-badge.inline {
+  position: static;
+}
+.ext-icon {
+  display: inline-block;
+  flex: none;
+  object-fit: contain;
+}
+.ext-icon.placeholder {
+  display: inline-grid;
+  place-items: center;
+  border-radius: 6px;
+  background: var(--hx-accent-soft);
+  color: var(--hx-accent);
+}

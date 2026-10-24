@@ -13,6 +13,7 @@ mod audio;
 mod browser;
 mod compositor;
 mod downloads;
+mod extensions;
 mod favicon;
 mod keyutils;
 mod limits;
@@ -30,6 +31,8 @@ Options:
   --private            open a private window (nothing is saved)
   --profile <id>       use the given profile
   --data-dir <path>    store profiles in <path> instead of the user data folder
+  --load-extension <folder>
+                       run an unpacked extension for this session (development)
   --help               show this help
 ";
 
@@ -47,6 +50,9 @@ fn parse_args() -> Result<LaunchOptions, String> {
             "--private" => options.private = true,
             "--secondary-window" => options.secondary = true,
             "--profile" => options.profile = Some(args.next().ok_or("--profile needs an id")?),
+            "--load-extension" => options
+                .load_extensions
+                .push(args.next().ok_or("--load-extension needs a folder")?.into()),
             "--data-dir" => {
                 let dir = args.next().ok_or("--data-dir needs a path")?;
                 // SAFETY: set before any thread is spawned.

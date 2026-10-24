@@ -1,0 +1,9 @@
+{
+  "manifest_version": 2,
+  "name": "HakuCX Test Firefox",
+  "description": "Sample Firefox-style extension: browser.* promises, a gecko id, and a blocking webRequest listener.",
+  "version": "1.0",
+  "browser_specific_settings": { "gecko": { "id": "haku-test@example.org", "strict_min_version": "109.0" } },
+  "permissions": ["webRequest", "webRequestBlocking", "http://127.0.0.1/*"],
+  "background": { "scripts": ["background.js"] }
+}

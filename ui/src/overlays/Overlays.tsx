@@ -4,9 +4,12 @@
 
 import { useEffect } from "react";
 import { Icon, Logo } from "../components/Icon";
+import { send } from "../ipc/bridge";
 import { clsx } from "../lib/util";
 import { useStore } from "../state/store";
+import { ExtPopupHost } from "../shell/ExtensionButtons";
 import { EasySetup } from "./EasySetup";
+import { ExtPrompts } from "./ExtPrompts";
 import { Menus } from "./Menus";
 import { Modals } from "./Modals";
 import { PageDialogs } from "./PageDialogs";
@@ -24,6 +27,7 @@ export function Overlays() {
       if (e.key !== "Escape") return;
       const s = useStore.getState();
       if (s.menu) s.openMenu(null);
+      else if (s.extPopup) send({ type: "ext-popup-close" });
       else if (s.popup) s.openPopup(null);
       else if (s.palette_open) s.setPalette(null);
       else if (s.drawer) s.setDrawer(null);
@@ -50,11 +54,13 @@ export function Overlays() {
       )}
       <EasySetup />
       <SidebarSetup />
+      <ExtPopupHost />
       <Popups />
       <Menus />
       <Palette />
       <Modals />
       <PageDialogs />
+      <ExtPrompts />
       <Toasts />
       <Splash />
     </>

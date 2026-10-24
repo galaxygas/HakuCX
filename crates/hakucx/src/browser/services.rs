@@ -32,6 +32,20 @@ impl BackgroundSender {
             (self.wake)();
         }
     }
+
+    /// Run `task` on the UI thread after `delay` (a timer thread; for rare, short waits).
+    pub fn post_after(&self, delay: Duration, task: impl FnOnce(&Browser) + Send + 'static) {
+        let sender = self.clone();
+        let spawned = std::thread::Builder::new()
+            .name("timer".into())
+            .spawn(move || {
+                std::thread::sleep(delay);
+                sender.send(Box::new(task));
+            });
+        if let Err(e) = spawned {
+            warn!("timer thread: {e}");
+        }
+    }
 }
 
 pub struct MetricsState {
@@ -81,6 +95,7 @@ impl Browser {
             self.settings_changed();
         }
         self.poll_downloads();
+        self.ext_tick_if_due();
         if self.metrics_due() {
             self.collect_metrics();
         }

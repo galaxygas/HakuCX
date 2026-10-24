@@ -45,6 +45,28 @@ const BOOTSTRAP: &str = r#"(() => {
   Object.defineProperty(window, "__hakuBoot", { value: true });
   const PREFIX = "\u0001haku-page:";
   const post = (msg) => { try { console.debug(PREFIX + JSON.stringify(msg)); } catch (_) {} };
+  // Extension content-script relay: the browser can only run script in the top frame, so it
+  // hands messages here; each frame gives them to its own content scripts and forwards them to
+  // its child frames.
+  const extHandlers = new Map();
+  Object.defineProperty(window, "__hakuExtRegister", { value: (token, fn) => {
+    let set = extHandlers.get(token);
+    if (!set) extHandlers.set(token, (set = new Set()));
+    set.add(fn);
+  } });
+  const relay = (token, payload) => {
+    for (const handler of extHandlers.get(token) || []) {
+      try { handler(payload); } catch (e) { console.error(e); }
+    }
+    for (let i = 0; i < window.frames.length; i++) {
+      try { window.frames[i].postMessage({ __hakuExtRelay: token, payload }, "*"); } catch (_) {}
+    }
+  };
+  Object.defineProperty(window, "__hakuRelay", { value: relay });
+  window.addEventListener("message", (e) => {
+    const d = e.data;
+    if (d && typeof d.__hakuExtRelay === "string" && e.source === window.parent && window.parent !== window) relay(d.__hakuExtRelay, d.payload);
+  }, true);
   const MAX_INLINE = 64 * 1024 * 1024;
   document.addEventListener("click", (event) => {
     if (event.defaultPrevented || event.button !== 0) return;

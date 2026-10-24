@@ -48,12 +48,14 @@ impl Browser {
                 modal,
                 blur: _,
                 regions,
+                ext_popup,
             } => {
                 let scale = self.ui_scale();
                 *self.layout.borrow_mut() = Layout {
                     page: to_pixels(page, scale),
                     split: split.map(|r| to_pixels(r, scale)),
                     panel: panel.map(|r| to_pixels(r, scale)),
+                    popup: ext_popup.map(|r| to_pixels(r, scale)),
                     overlay,
                     modal,
                     regions: regions
@@ -64,6 +66,7 @@ impl Browser {
                 };
                 self.resize_panes();
                 self.resize_web_panel();
+                self.ext_resize_popup();
                 self.window.request_redraw();
             }
             Command::Window { action } => self.window_action(action),
@@ -720,6 +723,41 @@ impl Browser {
                 }
             }
 
+            // ---------------------------------------------------------- extensions
+            // File dialogs are modal: open them outside this dispatch.
+            Command::ExtInstallFile => self.defer(|b| b.ext_install_file()),
+            Command::ExtLoadUnpacked => self.defer(|b| b.ext_load_unpacked()),
+            Command::ExtInstallAnswer { request, accept } => {
+                self.ext_install_answer(request, accept)
+            }
+            Command::ExtSetEnabled { id, enabled } => self.ext_set_enabled(&id, enabled),
+            Command::ExtSetPrivate { id, allow } => {
+                self.ext_update_record(&id, |r| r.allow_private = allow)
+            }
+            Command::ExtSetPinned { id, pinned } => {
+                self.ext_update_record(&id, |r| r.pinned = pinned)
+            }
+            Command::ExtRemove { id } => self.ext_remove(&id),
+            Command::ExtReload { id } => self.ext_reload(&id),
+            Command::ExtOpenOptions { id } => self.ext_open_options(&id),
+            Command::ExtSetDeveloperMode { on } => self.ext_set_developer_mode(on),
+            Command::ExtSetShortcut {
+                id,
+                command,
+                accelerator,
+            } => self.ext_set_shortcut(&id, &command, &accelerator),
+            Command::ExtActionClick { id, anchor } => self.ext_action_click(&id, anchor),
+            Command::ExtPopupClose => self.ext_close_popup(),
+            Command::ExtMenuClick { ext, item, menu } => self.ext_menu_click(&ext, &item, menu),
+            Command::ExtPermissionAnswer { request, grant } => {
+                self.ext_permission_answer(request, grant)
+            }
+            Command::ExtToggleRuleset {
+                id,
+                ruleset,
+                enabled,
+            } => self.ext_toggle_ruleset(&id, &ruleset, enabled),
+
             // ---------------------------------------------------------- misc
             Command::Panic => self.toggle_panic(),
             Command::PlaySound { sound } => self.play_sound(&sound),
@@ -845,7 +883,7 @@ impl Browser {
             PageAction::SavePage => {
                 if url.starts_with("http") {
                     // Save the page's document as served (HTML without subresources).
-                    self.start_download(url.clone(), None, None, Some(tab.clone()));
+                    let _ = self.start_download(url.clone(), None, None, Some(tab.clone()));
                 }
             }
             PageAction::Screenshot => self.capture_screenshot(&tab),
@@ -912,7 +950,7 @@ impl Browser {
             }
             PageAction::SaveLinkAs | PageAction::SaveImageAs => {
                 if let Some(d) = data.filter(|d| d.starts_with("http")) {
-                    self.start_download(d, None, Some(url.clone()), Some(tab.clone()));
+                    let _ = self.start_download(d, None, Some(url.clone()), Some(tab.clone()));
                 }
             }
             PageAction::SearchSelection if data.is_none() => {

@@ -226,6 +226,18 @@ impl Browser {
                 servo::DevicePoint::new(x, y).into(),
             );
         }
+        // An extension popup floats above pages and the rest of the UI.
+        if let Some(rect) = layout.popup
+            && rect.contains(x, y)
+            && let Some(webview) = self.pane_webview(Pane::Popup)
+        {
+            let point = servo::DevicePoint::new(x - rect.x, y - rect.y);
+            return (
+                PointerTarget::Page(Pane::Popup),
+                Some(webview),
+                point.into(),
+            );
+        }
         // A web panel floats above the page, so it receives input even while the page is
         // covered by the (floating) panel overlay.
         if let Some(rect) = layout.panel
@@ -269,7 +281,7 @@ impl Browser {
 
     fn focus(&self, pane: Option<Pane>) {
         self.keyboard_pane.set(pane);
-        for p in [Pane::Main, Pane::Split, Pane::Panel] {
+        for p in [Pane::Main, Pane::Split, Pane::Panel, Pane::Popup] {
             if let Some(w) = self.pane_webview(p) {
                 w.set_focused(pane == Some(p));
             }
@@ -349,6 +361,19 @@ impl Browser {
                     return;
                 }
                 if state == ElementState::Pressed {
+                    // A click anywhere else closes an extension popup, as in Chrome (but not a
+                    // click in a menu the popup opened, which the UI reports as a region).
+                    let in_region = {
+                        let pos = self.cursor.get();
+                        self.layout
+                            .borrow()
+                            .regions
+                            .iter()
+                            .any(|r| r.contains(pos.x as f32, pos.y as f32))
+                    };
+                    if target != PointerTarget::Page(Pane::Popup) && !in_region {
+                        self.ext_dismiss_popup();
+                    }
                     match target {
                         PointerTarget::Page(pane) => {
                             self.note_user_input(&webview);
@@ -550,7 +575,18 @@ impl Browser {
             let acc = parse_accelerator(binding)?;
             matches(&acc, &name, mods).then_some(*command)
         });
-        let Some(command) = command else { return false };
+        let Some(command) = command else {
+            // Extension shortcuts (`commands` in the manifest) after the browser's own.
+            if let Some((ext, ext_command)) = self.ext_command_for(|binding| {
+                parse_accelerator(binding).is_some_and(|acc| matches(&acc, &name, mods))
+            }) {
+                if !repeat {
+                    self.ext_run_command(&ext, &ext_command);
+                }
+                return true;
+            }
+            return false;
+        };
         // Single-key shortcuts (no modifiers) can be turned off as "advanced".
         if !advanced
             && !mods.intersects(Modifiers::CONTROL | Modifiers::ALT)

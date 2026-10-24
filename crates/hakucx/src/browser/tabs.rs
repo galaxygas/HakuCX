@@ -32,6 +32,8 @@ pub enum Pane {
     Split = 1,
     /// Sidebar web panels (messengers, social, AI).
     Panel = 2,
+    /// Extension popups, drawn above the UI shell.
+    Popup = 3,
 }
 
 impl Pane {
@@ -286,6 +288,7 @@ impl Browser {
     fn create_webview(&self, tab_id: &TabId, pane: Pane, url: Option<Url>) -> WebView {
         let content_manager = Rc::new(UserContentManager::new(&self.servo));
         page_scripts::install(&content_manager, &self.settings.borrow());
+        self.add_extension_scripts(&content_manager);
         let mut builder = WebViewBuilder::new(&self.servo, self.pane_context(pane))
             .hidpi_scale_factor(euclid::Scale::new(self.scale()))
             .user_content_manager(content_manager.clone())
@@ -336,6 +339,9 @@ impl Browser {
 
     /// The webview showing in a pane right now (none if the pane shows an internal page).
     pub(crate) fn pane_webview(&self, pane: Pane) -> Option<WebView> {
+        if pane == Pane::Popup {
+            return self.ext_popup_webview();
+        }
         if pane == Pane::Panel {
             let id = self.visible_panel.borrow().clone()?;
             return self.web_panels.borrow().get(&id).cloned();
@@ -605,6 +611,7 @@ impl Browser {
         {
             warn!("history: {e}");
         }
+        self.ext_history_visited(url);
     }
 
     pub(crate) fn set_loading(&self, tab_id: &TabId, status: LoadStatus) {

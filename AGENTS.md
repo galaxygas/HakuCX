@@ -6,7 +6,7 @@ This file is the contract for anyone, human or AI, changing HakuCX. Read it befo
 
 1. **Never fake a feature.** If something cannot work (engine limit, no server, missing API), show it disabled with the reason, or leave it out. No simulated VPNs, fake stats, placeholder data presented as real, or toggles that do nothing.
 2. **Never re-enter Servo from a Servo callback.** Delegate methods and `evaluate_javascript` callbacks run while Servo holds internal borrows. Queue work (`State::inbox` / `State::outbox`) and handle it in `State::pump()` after `spin_event_loop()` returns. Violations panic with `RefCell already borrowed`.
-3. **Only the UI shell webview may use IPC.** IPC messages from any other webview must be rejected (see `show_console_message`). Never expose the IPC channel, a token, or a privileged API to web content or content scripts.
+3. **Only the UI shell webview may use IPC.** IPC messages from any other webview must be rejected (see `show_console_message`). Never expose the IPC channel, a token, or a privileged API to web content. Extensions have their own channel (`browser/extensions.rs`): calls are checked against the extension's token, the calling context (content scripts get `CONTENT_METHODS` only), and the extension's permissions in `ext_api.rs`, never only in `api.js`.
 4. **Resize webviews, not rendering contexts.** Call `WebView::resize`; it resizes the shared context. Resizing the context first makes Servo skip the viewport update.
 5. **Pin Servo exactly.** `servo = "=x.y.z"`. Upgrades are their own PR with the API changes from Servo's monthly release notes.
 6. **No telemetry, no tracking, no remote code.** Network calls the browser makes on its own (filter lists, feeds, weather) must be user-visible, documented in `docs/NETWORK.md`, and switchable off.
@@ -27,6 +27,8 @@ This file is the contract for anyone, human or AI, changing HakuCX. Read it befo
 | Settings page rows | `ui/src/pages/settings/sections.tsx`, `subpages.tsx` |
 | `haku://` serving and CSP | `crates/hakucx/src/protocol.rs` |
 | Requests HakuCX makes on its own | `docs/NETWORK.md` (must be updated with every new one) |
+| Extensions (manifests, packages, rules) | `crates/haku-core/src/extensions/` |
+| Extension API methods and runtime | `crates/hakucx/src/browser/ext_api.rs`, `browser/extensions.rs`, `extensions/api.js`; keep `docs/EXTENSIONS.md` in step |
 
 ## Build and check
 

@@ -1,0 +1,17 @@
+{
+  "manifest_version": 3,
+  "name": "__MSG_extName__",
+  "description": "__MSG_extDescription__",
+  "version": "1.0.0",
+  "default_locale": "en",
+  "icons": { "48": "icon48.png" },
+  "permissions": ["declarativeNetRequest", "declarativeNetRequestFeedback", "storage", "alarms"],
+  "host_permissions": ["http://127.0.0.1/*"],
+  "background": { "service_worker": "background.js" },
+  "declarative_net_request": {
+    "rule_resources": [{ "id": "default", "enabled": true, "path": "rules.json" }]
+  },
+  "web_accessible_resources": [{ "resources": ["green.png"], "matches": ["http://127.0.0.1/*"] }],
+  "action": { "default_title": "Test Blocker", "default_popup": "popup.html", "default_icon": { "48": "icon48.png" } },
+  "options_page": "options.html"
+}

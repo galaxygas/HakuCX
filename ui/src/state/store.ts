@@ -12,6 +12,7 @@ import type { ContextMenuInfo } from "../ipc/generated/ContextMenuInfo";
 import type { DialogKind } from "../ipc/generated/DialogKind";
 import type { DownloadRecord } from "../ipc/generated/DownloadRecord";
 import type { EngineInfo } from "../ipc/generated/EngineInfo";
+import type { ExtensionInfo } from "../ipc/generated/ExtensionInfo";
 import type { Event } from "../ipc/generated/Event";
 import type { Metrics } from "../ipc/generated/Metrics";
 import type { Palette } from "../ipc/generated/Palette";
@@ -65,6 +66,10 @@ export type PermissionPrompt = { id: number; tab: string; origin: string; kind: 
 export type AuthPrompt = { id: number; tab: string; url: string; proxy: boolean };
 export type Toast = { id: number; text: string; kind: string; action?: { label: string; run: () => void } };
 export type PanelState = { loading: boolean; url: string; canGoBack: boolean };
+/** An open extension popup: where its button is and the size its page asked for. */
+export type ExtPopup = { id: string; anchor: Rect; width: number; height: number };
+export type ExtInstallPrompt = { request: number; name: string; version: string; warnings: string[]; update: boolean };
+export type ExtPermissionPrompt = { request: number; name: string; warnings: string[] };
 
 const HISTORY_POINTS = 60;
 
@@ -103,6 +108,11 @@ type State = {
   /** Unread counts of sidebar web panels (messengers), from their page titles. */
   badges: Record<string, number>;
   panelStates: Record<string, PanelState>;
+  extensions: ExtensionInfo[];
+  extDeveloperMode: boolean;
+  extPopup: ExtPopup | null;
+  extInstall: ExtInstallPrompt | null;
+  extPermissions: ExtPermissionPrompt[];
 
   panel: string | null;
   popup: Popup;
@@ -180,6 +190,11 @@ export const useStore = create<State & Actions>((set, get) => ({
   historyResults: {},
   badges: {},
   panelStates: {},
+  extensions: [],
+  extDeveloperMode: false,
+  extPopup: null,
+  extInstall: null,
+  extPermissions: [],
 
   panel: null,
   popup: null,
@@ -341,6 +356,21 @@ export const useStore = create<State & Actions>((set, get) => ({
       case "cleaner-done":
         get().toast(event.summary, "info");
         break;
+      case "extensions":
+        set({ extensions: event.items, extDeveloperMode: event.developerMode });
+        break;
+      case "ext-popup":
+        set({ extPopup: { id: event.id, anchor: event.anchor, width: event.width, height: event.height }, popup: null, menu: null });
+        break;
+      case "ext-popup-closed":
+        set({ extPopup: null });
+        break;
+      case "ext-install-prompt":
+        set({ extInstall: { request: event.request, name: event.name, version: event.version, warnings: event.warnings, update: event.update } });
+        break;
+      case "ext-permission-prompt":
+        set((s) => ({ extPermissions: [...s.extPermissions, { request: event.request, name: event.name, warnings: event.warnings }] }));
+        break;
       case "ai-key":
       case "cleaner-stats":
       case "http-result":
@@ -463,6 +493,8 @@ export function selectModal(s: State): boolean {
       s.addressOpen ||
       s.dialogs.length ||
       s.permissions.length ||
+      s.extInstall ||
+      s.extPermissions.length ||
       s.splash,
   );
 }

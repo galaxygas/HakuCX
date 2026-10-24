@@ -129,6 +129,9 @@ pub enum Command {
         /// Interactive UI drawn on top of a page (find bar, split divider): input there goes
         /// to the UI even when nothing else covers the page.
         regions: Vec<Rect>,
+        /// Where an extension's popup page is drawn (above the UI).
+        #[serde(default)]
+        ext_popup: Option<Rect>,
     },
     Window {
         action: WindowAction,
@@ -457,6 +460,68 @@ pub enum Command {
     PickDownloadDir,
     Relaunch,
 
+    // ---- extensions
+    /// Ask for a `.crx`, `.xpi` or `.zip` file and install it (after the permission prompt).
+    ExtInstallFile,
+    /// Developer mode: ask for a folder and load it unpacked.
+    ExtLoadUnpacked,
+    /// Answer to an [`Event::ExtInstallPrompt`].
+    ExtInstallAnswer {
+        request: u32,
+        accept: bool,
+    },
+    ExtSetEnabled {
+        id: String,
+        enabled: bool,
+    },
+    ExtSetPrivate {
+        id: String,
+        allow: bool,
+    },
+    ExtSetPinned {
+        id: String,
+        pinned: bool,
+    },
+    ExtRemove {
+        id: String,
+    },
+    ExtReload {
+        id: String,
+    },
+    ExtOpenOptions {
+        id: String,
+    },
+    ExtSetDeveloperMode {
+        on: bool,
+    },
+    ExtSetShortcut {
+        id: String,
+        command: String,
+        accelerator: String,
+    },
+    /// The toolbar button: opens the popup or fires `action.onClicked`. `anchor` is the button.
+    ExtActionClick {
+        id: String,
+        anchor: Rect,
+    },
+    ExtPopupClose,
+    /// A context-menu item an extension added.
+    ExtMenuClick {
+        ext: String,
+        item: String,
+        menu: u32,
+    },
+    /// Answer to an [`Event::ExtPermissionPrompt`] (`permissions.request`).
+    ExtPermissionAnswer {
+        request: u32,
+        grant: bool,
+    },
+    ExtToggleRuleset {
+        id: String,
+        ruleset: String,
+        enabled: bool,
+    },
+
     // ---- misc
     Panic,
     PlaySound {
@@ -574,6 +639,71 @@ pub struct ContextMenuInfo {
     pub selection: bool,
     pub can_go_back: bool,
     pub can_go_forward: bool,
+    /// Items extensions added with `contextMenus`/`menus` that apply to this click.
+    #[serde(default)]
+    pub extension_items: Vec<ExtMenuItem>,
+}
+
+/// A context-menu item contributed by an extension, already filtered for this click.
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, TS)]
+#[serde(rename_all = "camelCase")]
+#[ts(export)]
+pub struct ExtMenuItem {
+    pub ext: String,
+    pub id: String,
+    pub parent: Option<String>,
+    pub title: String,
+    /// `normal`, `checkbox`, `radio` or `separator`.
+    pub kind: String,
+    pub checked: bool,
+    pub enabled: bool,
+    /// The extension's icon (a `haku-ext://` URL), shown on top-level items.
+    pub icon: Option<String>,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, TS)]
+#[serde(rename_all = "camelCase")]
+#[ts(export)]
+pub struct ExtCommandInfo {
+    pub name: String,
+    pub description: String,
+    pub shortcut: String,
+}
+
+/// An installed extension, as the Extensions page and the toolbar show it.
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, TS)]
+#[serde(rename_all = "camelCase")]
+#[ts(export)]
+pub struct ExtensionInfo {
+    pub id: String,
+    pub runtime_id: String,
+    pub name: String,
+    pub version: String,
+    pub description: String,
+    pub manifest_version: u8,
+    /// A `haku-ext://` URL of the best icon, if any.
+    pub icon: Option<String>,
+    pub enabled: bool,
+    pub allow_private: bool,
+    pub pinned: bool,
+    pub unpacked: bool,
+    pub path: String,
+    pub homepage: Option<String>,
+    pub has_options: bool,
+    pub has_popup: bool,
+    /// Toolbar button state for the active tab.
+    pub action_title: String,
+    pub badge_text: String,
+    pub badge_color: String,
+    pub action_icon: Option<String>,
+    pub action_enabled: bool,
+    pub warnings: Vec<String>,
+    pub errors: Vec<String>,
+    pub commands: Vec<ExtCommandInfo>,
+    /// Static rulesets: (id, enabled).
+    pub rulesets: Vec<(String, bool)>,
+    /// APIs or features this extension uses that HakuCX cannot provide yet.
+    pub unsupported: Vec<String>,
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize, TS)]
@@ -808,6 +938,32 @@ pub enum Event {
         loading: bool,
         url: String,
         can_go_back: bool,
+    },
+    Extensions {
+        items: Vec<ExtensionInfo>,
+        developer_mode: bool,
+    },
+    /// Show an extension popup under `anchor` at this size (CSS px).
+    ExtPopup {
+        id: String,
+        anchor: Rect,
+        width: f32,
+        height: f32,
+    },
+    ExtPopupClosed,
+    /// Confirm installing a package: what it can do.
+    ExtInstallPrompt {
+        request: u32,
+        name: String,
+        version: String,
+        warnings: Vec<String>,
+        update: bool,
+    },
+    /// `permissions.request` from an extension.
+    ExtPermissionPrompt {
+        request: u32,
+        name: String,
+        warnings: Vec<String>,
     },
     Pinboards {
         pinboards: Pinboards,

@@ -193,6 +193,14 @@ impl ProfilePaths {
     pub fn extensions(&self) -> PathBuf {
         self.root.join("extensions")
     }
+    /// The installed-extension list.
+    pub fn extension_list(&self) -> PathBuf {
+        self.root.join("extensions.json")
+    }
+    /// `chrome.storage.local` / `sync` data, one file per extension.
+    pub fn extension_storage(&self) -> PathBuf {
+        self.root.join("extension-storage")
+    }
     pub fn filters(&self) -> PathBuf {
         self.root.join("filters")
     }

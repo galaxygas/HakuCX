@@ -87,7 +87,7 @@ impl App {
             }
             // While something animates, wake at frame rate so Servo can advance it; otherwise
             // sleep until the next event or wake-up.
-            event_loop.set_control_flow(if browser.is_animating() {
+            event_loop.set_control_flow(if browser.is_animating() || browser.needs_timer() {
                 ControlFlow::WaitUntil(std::time::Instant::now() + FRAME_INTERVAL)
             } else {
                 ControlFlow::Wait

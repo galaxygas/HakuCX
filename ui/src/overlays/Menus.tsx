@@ -5,6 +5,8 @@
 import { useLayoutEffect, useRef, useState } from "react";
 import { Icon } from "../components/Icon";
 import { send } from "../ipc/bridge";
+import type { ContextMenuInfo } from "../ipc/generated/ContextMenuInfo";
+import type { ExtMenuItem } from "../ipc/generated/ExtMenuItem";
 import type { PageAction } from "../ipc/generated/PageAction";
 import { sidebarItem } from "../lib/catalog";
 import { clsx } from "../lib/util";
@@ -12,7 +14,28 @@ import { openInternal, useStore, type Menu } from "../state/store";
 
 const EMOJIS = ["🔥", "🎮", "🎧", "⚡", "💀", "🌙", "🎯", "🧪", "📌", "🛡️", "🚀", "👾", "💬", "📚", "🛒", "⭐"];
 
-type Item = { label: string; icon?: string; shortcut?: string; action?: () => void; disabled?: boolean; title?: string; danger?: boolean; children?: Item[] } | "sep";
+type Item =
+  | {
+      label: string;
+      icon?: string;
+      /** An image instead of an icon glyph (extension icons). */
+      image?: string | null;
+      /** Checkbox and radio items from extensions. */
+      checked?: boolean;
+      shortcut?: string;
+      action?: () => void;
+      disabled?: boolean;
+      title?: string;
+      danger?: boolean;
+      children?: Item[];
+    }
+  | "sep";
+
+function ItemIcon({ item, size }: { item: Exclude<Item, "sep">; size: number }) {
+  if (item.checked !== undefined) return item.checked ? <Icon name="ok" size={size} /> : <span className="menu-icon-space" />;
+  if (item.image) return <img className="menu-image" src={item.image} width={size} height={size} alt="" />;
+  return item.icon ? <Icon name={item.icon} size={size} /> : <span className="menu-icon-space" />;
+}
 
 function close() {
   const s = useStore.getState();
@@ -50,7 +73,7 @@ function MenuList({ items, x, y }: { items: Item[]; x: number; y: number }) {
                 close();
               }}
             >
-              {item.icon ? <Icon name={item.icon} size={15} /> : <span className="menu-icon-space" />}
+              <ItemIcon item={item} size={15} />
               <span className="grow">{item.label}</span>
               {item.shortcut && <kbd>{item.shortcut}</kbd>}
               {item.children && <Icon name="chevron-right" size={13} />}
@@ -70,7 +93,7 @@ function MenuList({ items, x, y }: { items: Item[]; x: number; y: number }) {
                         close();
                       }}
                     >
-                      {c.icon ? <Icon name={c.icon} size={14} /> : <span className="menu-icon-space" />}
+                      <ItemIcon item={c} size={14} />
                       <span className="grow">{c.label}</span>
                     </button>
                   ),
@@ -156,6 +179,11 @@ function itemsFor(menu: Menu): Item[] | null {
         { label: "Translate page", icon: "languages", action: () => page("translate", info.tab) },
         { label: "Wayback Machine", icon: "clock", action: () => page("wayback", info.tab) },
         "sep",
+      );
+      // Extension items go above the developer items, as in Chrome.
+      const extensionItems = extensionMenuItems(info);
+      if (extensionItems.length) items.push(...extensionItems, "sep");
+      items.push(
         { label: "Page source", icon: "code", shortcut: "Ctrl+U", action: () => page("view-source", info.tab) },
         { label: "Inspect element", icon: "search", shortcut: "Ctrl+Shift+I", action: () => s.openModal({ kind: "devtools" }) },
       );
@@ -287,6 +315,56 @@ function itemsFor(menu: Menu): Item[] | null {
       return items;
     }
   }
+}
+
+/**
+ * Items extensions added. Like Chrome, an extension with one top-level item shows it directly;
+ * one with several gets a submenu under its name. Deeper levels are flattened into that
+ * submenu, indented.
+ */
+function extensionMenuItems(info: ContextMenuInfo): Item[] {
+  const all = info.extensionItems;
+  if (!all.length) return [];
+  const names = new Map(useStore.getState().extensions.map((e) => [e.id, e.name]));
+  const toItem = (m: ExtMenuItem, depth: number): Item =>
+    m.kind === "separator"
+      ? "sep"
+      : {
+          label: `${"\u2003".repeat(depth)}${m.title}`,
+          image: depth === 0 ? m.icon : undefined,
+          checked: m.kind === "checkbox" || m.kind === "radio" ? m.checked : undefined,
+          disabled: !m.enabled,
+          action: () => send({ type: "ext-menu-click", ext: m.ext, item: m.id, menu: info.id }),
+        };
+  const descendants = (ext: string, parent: string, depth: number): Item[] =>
+    all
+      .filter((m) => m.ext === ext && m.parent === parent)
+      .flatMap((m) => {
+        const kids = descendants(ext, m.id, depth + 1);
+        if (!kids.length) return [toItem(m, depth)];
+        const head = toItem(m, depth);
+        return head === "sep" ? kids : [{ ...head, action: undefined, disabled: true }, ...kids];
+      });
+  const out: Item[] = [];
+  for (const ext of [...new Set(all.map((m) => m.ext))]) {
+    const top = all.filter((m) => m.ext === ext && m.parent === null);
+    if (top.length === 1) {
+      const kids = descendants(ext, top[0]!.id, 0);
+      const head = toItem(top[0]!, 0);
+      out.push(kids.length && head !== "sep" ? { ...head, action: undefined, children: kids } : head);
+    } else if (top.length > 1) {
+      out.push({
+        label: names.get(ext) ?? "Extension",
+        image: top.find((m) => m.icon)?.icon,
+        children: top.flatMap((m) => {
+          const kids = descendants(ext, m.id, 1);
+          const head = toItem(m, 0);
+          return kids.length && head !== "sep" ? [{ ...head, action: undefined, disabled: true }, ...kids] : [head];
+        }),
+      });
+    }
+  }
+  return out;
 }
 
 function moveSidebar(id: string, delta: number) {

@@ -824,3 +824,45 @@
 .shell.booting .splash {
   animation: none;
 }
+
+/* extension popup: a frame around the hole the core draws the popup page into */
+.ext-popup {
+  position: fixed;
+  z-index: 95;
+  border: 1px solid var(--hx-accent);
+  border-radius: 2px;
+  box-shadow: 0 18px 48px var(--hx-shadow), 0 0 0 3px var(--hx-accent-soft);
+  pointer-events: none;
+}
+.ext-popup-hole {
+  display: block;
+}
+.ext-popup-list {
+  display: block;
+}
+.ext-popup-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.ext-popup-row .icon-btn.active {
+  color: var(--hx-accent);
+}
+.menu-image {
+  flex: none;
+  object-fit: contain;
+}
+.ext-prompt .modal-head {
+  gap: 10px;
+  color: var(--hx-accent);
+}
+.ext-prompt .modal-head h2 {
+  color: var(--hx-text);
+}
+.ext-list {
+  margin: 6px 0 0;
+  padding-left: 20px;
+}
+.ext-list li + li {
+  margin-top: 4px;
+}
