@@ -34,6 +34,19 @@ if (-not $SkipBuild) {
 }
 $target = if ($env:CARGO_TARGET_DIR) { $env:CARGO_TARGET_DIR } else { "$root\target" }
 $release = "$target\release"
+# ANGLE: mozangle (a Servo dependency) builds libEGL/libGLESv2 into its own OUT_DIR. hakucx's
+# build script copies them next to the exe, but Cargo may run it before mozangle is built (it
+# always does on a clean build), so take them from mozangle's newest output here.
+foreach ($dll in "libEGL.dll", "libGLESv2.dll") {
+  if (-not (Test-Path "$release\$dll")) {
+    $angle = Get-ChildItem "$release\build" -Directory -Filter "mozangle-*" -ErrorAction SilentlyContinue |
+      ForEach-Object { Join-Path $_.FullName "out" } |
+      Where-Object { (Test-Path "$_\libEGL.dll") -and (Test-Path "$_\libGLESv2.dll") } |
+      Sort-Object { (Get-Item "$_\libEGL.dll").LastWriteTime } -Descending |
+      Select-Object -First 1
+    if ($angle) { Copy-Item "$angle\$dll" "$release\$dll" }
+  }
+}
 foreach ($f in "hakucx.exe", "libEGL.dll", "libGLESv2.dll", "haku-release.exe", "gstreamer-files.txt") {
   if (-not (Test-Path "$release\$f")) { throw "missing $release\$f (build first)" }
 }
