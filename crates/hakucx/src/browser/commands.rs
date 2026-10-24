@@ -758,6 +758,29 @@ impl Browser {
                 enabled,
             } => self.ext_toggle_ruleset(&id, &ruleset, enabled),
 
+            // ---------------------------------------------------------- passwords, autofill, sync
+            Command::VaultUnlock { password } => self.vault_unlock(&password),
+            Command::VaultSetRecovery { password } => self.vault_set_recovery(password),
+            Command::VaultReveal { request, id } => self.vault_reveal(request, id),
+            Command::SaveLogin { login } => self.vault_save_login(login),
+            Command::SaveCard { card } => self.vault_save_card(card),
+            Command::SaveAddress { address } => self.vault_save_address(address),
+            Command::VaultDelete { id } => self.vault_delete(&id),
+            Command::NeverSaveRemove { origin } => self.vault_never_remove(&origin),
+            Command::PasswordPromptAnswer {
+                prompt,
+                action,
+                username,
+                password,
+            } => self.vault_prompt_answer(prompt, &action, username, password),
+            Command::AutofillPick { tab, id } => self.vault_pick(tab, id),
+            // File dialogs are modal: open them outside this dispatch.
+            Command::PasswordsImport => self.defer(|b| b.vault_import()),
+            Command::PasswordsExport => self.vault_export(),
+            Command::SyncSetup { folder, passphrase } => self.sync_setup(folder, passphrase),
+            Command::SyncNow => self.sync_now(),
+            Command::SyncDisconnect => self.sync_disconnect(),
+
             // ---------------------------------------------------------- misc
             Command::Panic => self.toggle_panic(),
             Command::PlaySound { sound } => self.play_sound(&sound),

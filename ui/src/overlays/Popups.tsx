@@ -9,6 +9,7 @@ import { PERMISSION_LABELS } from "../lib/catalog";
 import { clsx, hostOf } from "../lib/util";
 import { DownloadRow } from "../panels/ListPanels";
 import { ExtIcon } from "../pages/ExtensionsPage";
+import { loginsFor } from "../pages/settings/autofill";
 import { openInternal, useStore } from "../state/store";
 
 function PopupFrame({ children, className, align = "right", width = 340 }: { children: ReactNode; className?: string; align?: "left" | "right"; width?: number }) {
@@ -53,6 +54,8 @@ export function Popups() {
       return <DownloadsPopup />;
     case "extensions":
       return <ExtensionsPopup />;
+    case "passwords":
+      return <PasswordsPopup />;
     case "profile":
       return <ProfilePopup />;
     case "site-info":
@@ -141,6 +144,44 @@ function DownloadsPopup() {
           Show more
         </button>
       </div>
+    </PopupFrame>
+  );
+}
+
+function PasswordsPopup() {
+  const session = useStore((s) => s.session);
+  const logins = useStore((s) => s.vault?.logins);
+  const activeId = session?.activeTabs[session.activeWorkspace];
+  const url = useStore((s) => (activeId ? (s.meta[activeId]?.url ?? "") : ""));
+  if (!activeId || !logins) return null;
+  const matching = loginsFor(logins, url);
+  const close = () => useStore.getState().openPopup(null);
+  return (
+    <PopupFrame width={320}>
+      <div className="row popup-title">
+        <span className="display grow">Saved passwords</span>
+        <button className="icon-btn" onClick={close}>
+          <Icon name="x" size={14} />
+        </button>
+      </div>
+      {matching.map((l) => (
+        <button
+          key={l.id}
+          className="menu-item"
+          title="Fill this account into the page"
+          onClick={() => {
+            send({ type: "autofill-pick", tab: activeId, id: l.id });
+            close();
+          }}
+        >
+          <Icon name="key" size={15} />
+          <span className="grow">{l.username || "(no username)"}</span>
+          <small className="muted">Fill</small>
+        </button>
+      ))}
+      <button className="btn wide" onClick={() => { openInternal("haku://settings/passwords"); close(); }}>
+        <Icon name="settings" size={14} /> Manage passwords
+      </button>
     </PopupFrame>
   );
 }

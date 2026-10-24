@@ -44,7 +44,7 @@ open = "5"
 adblock = { version = "0.13", default-features = false, features = ["embedded-domain-resolver", "full-regex-handling"] }
 content-security-policy = "0.9"
 sysinfo = { version = "0.39", default-features = false, features = ["system"] }
-windows = { version = "0.62", features = ["Win32_Foundation", "Win32_Security", "Win32_System_JobObjects", "Win32_System_Threading", "Win32_System_SystemInformation", "Win32_UI_Input_KeyboardAndMouse"] }
+windows = { version = "0.62", features = ["Win32_Foundation", "Win32_Security", "Win32_System_JobObjects", "Win32_System_Threading", "Win32_System_SystemInformation", "Win32_UI_Input_KeyboardAndMouse", "Win32_Security_Cryptography", "Win32_System_WinRT", "Security_Credentials_UI"] }
 keyring = { version = "3.6", features = ["windows-native"] }
 rodio = { version = "0.23", default-features = false, features = ["playback"] }
 reqwest = { version = "0.13", default-features = false, features = ["rustls", "blocking", "http2", "charset", "gzip", "brotli", "deflate", "json"] }
@@ -54,6 +54,13 @@ zip = { version = "9.0.5", default-features = false, features = ["deflate-flate2
 flate2 = { version = "1", default-features = false, features = ["rust_backend"] }
 sha2 = "0.10"
 regex = "1"
+# The password vault and sync bundles: XChaCha20-Poly1305 and Argon2id (RustCrypto).
+chacha20poly1305 = "0.10"
+argon2 = "0.5"
+zeroize = "1"
+getrandom = "0.3"
+# Waiting on Windows Hello's asynchronous result.
+windows-future = "0.3"
 # Signature checks for .crx packages; the same library rustls already builds.
 aws-lc-rs = { version = "1.18", features = ["prebuilt-nasm"] }
 # Same major version as Servo's, so cookies can be handed to its cookie store.

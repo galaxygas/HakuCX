@@ -23,8 +23,10 @@ mod panels;
 mod render;
 mod services;
 mod suggest;
+mod sync;
 mod tabs;
 mod tools;
+mod vault;
 
 use std::cell::{Cell, RefCell};
 use std::collections::HashMap;
@@ -181,6 +183,10 @@ pub struct Browser {
     secondary: bool,
     /// WebExtensions (see `extensions.rs`).
     ext: RefCell<extensions::ExtState>,
+    /// The password vault and autofill (see `vault.rs`).
+    vault: RefCell<vault::VaultState>,
+    /// Folder sync (see `sync.rs`).
+    sync: RefCell<sync::SyncState>,
 
     // ---- services
     audio: RefCell<Audio>,
@@ -328,6 +334,8 @@ impl Browser {
             animating: RefCell::default(),
             secondary: options.secondary,
             ext: RefCell::default(),
+            vault: RefCell::default(),
+            sync: RefCell::default(),
             audio: RefCell::new(Audio::new()),
             blocker: Blocker::new(wake.clone()),
             download_engine: DownloadEngine::new(wake.clone()),
@@ -343,6 +351,8 @@ impl Browser {
         }
         browser.apply_engine_settings();
         browser.create_ui_shell();
+        browser.vault_load();
+        browser.sync_load();
         browser.load_extensions();
         for dir in &options.load_extensions {
             browser.ext_load_for_session(dir);
@@ -555,6 +565,8 @@ impl Browser {
             self.emit(Event::TabMeta { meta });
         }
         self.ext.borrow_mut().info_dirty = true;
+        self.vault_emit();
+        self.sync_emit();
     }
 
     pub(crate) fn session_changed(&self) {
@@ -582,6 +594,7 @@ impl Browser {
         if let Some(ui) = self.ui_webview() {
             ui.set_hidpi_scale_factor(euclid::Scale::new(self.ui_scale()));
         }
+        self.sync_settings_changed();
     }
 
     pub(crate) fn bookmarks_changed(&self) {
@@ -589,6 +602,7 @@ impl Browser {
         self.emit(Event::Bookmarks {
             bookmarks: self.bookmarks.borrow().clone(),
         });
+        self.sync_soon();
     }
 
     pub(crate) fn downloads_changed(&self) {

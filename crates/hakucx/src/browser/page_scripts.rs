@@ -14,8 +14,12 @@ use std::rc::Rc;
 use servo::{UserContentManager, UserScript};
 
 /// Installed into every page webview at creation.
+/// Login and form detection for the password manager (it never fills anything by itself).
+const AUTOFILL: &str = include_str!("autofill.js");
+
 pub fn install(manager: &Rc<UserContentManager>, settings: &haku_core::settings::Settings) {
     manager.add_script(Rc::new(UserScript::new(BOOTSTRAP.to_owned(), None)));
+    manager.add_script(Rc::new(UserScript::new(AUTOFILL.to_owned(), None)));
     let privacy = privacy_signals(
         settings.privacy.do_not_track,
         settings.privacy.global_privacy_control,

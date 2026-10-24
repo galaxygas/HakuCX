@@ -909,3 +909,18 @@
   background: var(--hx-accent-soft);
   color: var(--hx-accent);
 }
+
+/* saved-passwords key in the address bar */
+.address-chip-btn {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 26px;
+  height: 26px;
+  border-radius: 6px;
+  color: var(--hx-accent);
+}
+.address-chip-btn:hover,
+.address-chip-btn.active {
+  background: var(--hx-hover);
+}

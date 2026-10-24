@@ -10,6 +10,7 @@ import { clsx, isInternal } from "../lib/util";
 import { useStore } from "../state/store";
 import { Input } from "../components/Field";
 import { PinnedExtensions } from "./ExtensionButtons";
+import { loginsFor } from "../pages/settings/autofill";
 
 let requestId = 1;
 
@@ -230,6 +231,7 @@ function AddressBar() {
           {Math.round(zoom * 100)}%
         </button>
       )}
+      <SavedLoginsButton url={url} editing={editing} />
       {showBlocked && (meta?.blocked ?? 0) > 0 && (
         <button className="blocked-pill" title="Ads and trackers blocked on this page" onClick={(e) => openPopup("blocked", (e.currentTarget as HTMLElement).getBoundingClientRect())}>
           <Icon name="shield" size={13} />
@@ -274,6 +276,23 @@ function extensionName(url: string): string | null {
   } catch {
     return null;
   }
+}
+
+/** A key in the address bar when passwords are saved for this site; it lists them to fill. */
+function SavedLoginsButton({ url, editing }: { url: string; editing: boolean }) {
+  const logins = useStore((s) => s.vault?.logins);
+  const popup = useStore((s) => s.popup);
+  const openPopup = useStore((s) => s.openPopup);
+  if (editing || !logins || loginsFor(logins, url).length === 0) return null;
+  return (
+    <button
+      className={clsx("address-chip-btn", popup === "passwords" && "active")}
+      title="Saved passwords for this site"
+      onClick={(e) => openPopup("passwords", (e.currentTarget as HTMLElement).getBoundingClientRect())}
+    >
+      <Icon name="key" size={15} />
+    </button>
+  );
 }
 
 function displayUrl(url: string, full: boolean): string {

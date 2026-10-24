@@ -10,6 +10,7 @@ import { useStore } from "../state/store";
 import { ExtPopupHost } from "../shell/ExtensionButtons";
 import { EasySetup } from "./EasySetup";
 import { ExtPrompts } from "./ExtPrompts";
+import { AutofillHost, PasswordPromptHost } from "./AutofillOverlays";
 import { Menus } from "./Menus";
 import { Modals } from "./Modals";
 import { PageDialogs } from "./PageDialogs";
@@ -26,7 +27,8 @@ export function Overlays() {
     const onKey = (e: KeyboardEvent) => {
       if (e.key !== "Escape") return;
       const s = useStore.getState();
-      if (s.menu) s.openMenu(null);
+      if (s.autofill) useStore.setState({ autofill: null });
+      else if (s.menu) s.openMenu(null);
       else if (s.extPopup) send({ type: "ext-popup-close" });
       else if (s.popup) s.openPopup(null);
       else if (s.palette_open) s.setPalette(null);
@@ -60,6 +62,8 @@ export function Overlays() {
       <Palette />
       <Modals />
       <PageDialogs />
+      <AutofillHost />
+      <PasswordPromptHost />
       <ExtPrompts />
       <Toasts />
       <Splash />

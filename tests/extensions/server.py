@@ -5,9 +5,11 @@
 """Test site for the sample extensions.
 
 Serves ./site on http://127.0.0.1:8765/ and appends every JSON body POSTed to /report as one
-line to reports.jsonl (next to this file), so a test run can be checked afterwards.
+line to reports.jsonl (next to this file), so a test run can be checked afterwards. A second
+argument serves another folder (the autofill test pages use this).
 
     python tests/extensions/server.py
+    python tests/extensions/server.py 8766 tests/autofill
 """
 
 import http.server
@@ -17,7 +19,7 @@ import sys
 import time
 
 HERE = pathlib.Path(__file__).resolve().parent
-SITE = HERE / "site"
+SITE = pathlib.Path(sys.argv[2]).resolve() if len(sys.argv) > 2 else HERE / "site"
 REPORTS = HERE / "reports.jsonl"
 PORT = int(sys.argv[1]) if len(sys.argv) > 1 else 8765
 

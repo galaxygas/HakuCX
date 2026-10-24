@@ -96,6 +96,7 @@ impl Browser {
         }
         self.poll_downloads();
         self.ext_tick_if_due();
+        self.sync_tick();
         if self.metrics_due() {
             self.collect_metrics();
         }

@@ -1,0 +1,26 @@
+<!doctype html>
+<!-- This Source Code Form is subject to the terms of the Mozilla Public
+   - License, v. 2.0. If a copy of the MPL was not distributed with this
+   - file, You can obtain one at https://mozilla.org/MPL/2.0/. -->
+<html lang="en">
+<head><meta charset="utf-8"><title>Sign in</title><link rel="stylesheet" href="style.css"></head>
+<body>
+  <h1>Sign in</h1>
+  <form id="login" action="welcome.html" onsubmit="event.preventDefault(); location.href = 'welcome.html';">
+    <label for="user">Email</label><input id="user" name="email" type="email" autocomplete="username">
+    <label for="pass">Password</label><input id="pass" name="password" type="password" autocomplete="current-password">
+    <span></span><button type="submit">Sign in</button>
+  </form>
+  <button id="simulate" type="button">Type a test sign-in and submit</button>
+  <pre id="state"></pre>
+  <script src="state.js"></script>
+  <script>
+    // Stands in for typing (the test driver cannot type into the page).
+    document.getElementById("simulate").addEventListener("click", () => {
+      document.getElementById("user").value = "kim@example.test";
+      document.getElementById("pass").value = "correct horse battery";
+      document.getElementById("login").requestSubmit();
+    });
+  </script>
+</body>
+</html>

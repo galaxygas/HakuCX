@@ -11,7 +11,8 @@ This file is the contract for anyone, human or AI, changing HakuCX. Read it befo
 5. **Pin Servo exactly.** `servo = "=x.y.z"`. Upgrades are their own PR with the API changes from Servo's monthly release notes.
 6. **No telemetry, no tracking, no remote code.** Network calls the browser makes on its own (filter lists, feeds, weather) must be user-visible, documented in `docs/NETWORK.md`, and switchable off.
 7. **Settings changes go through `haku_core::settings`.** Add fields with defaults; never rename or remove a persisted key without a migration in `Settings::migrate`.
-8. **Tests come with logic.** Anything in `haku-core` (or any engine-independent crate) needs unit tests. Run `cargo test -p haku-core` before you commit.
+8. **Secrets stay in the core.** Passwords and card numbers go to the UI only when the user asked to see one after Windows Hello (`vault_reveal`) or just typed it (the save prompt). Never fill a password without a user action, never write a vault that failed to open, and never log secrets.
+9. **Tests come with logic.** Anything in `haku-core` (or any engine-independent crate) needs unit tests. Run `cargo test -p haku-core` before you commit.
 
 ## Where things live
 
@@ -28,6 +29,7 @@ This file is the contract for anyone, human or AI, changing HakuCX. Read it befo
 | `haku://` serving and CSP | `crates/hakucx/src/protocol.rs` |
 | Requests HakuCX makes on its own | `docs/NETWORK.md` (must be updated with every new one) |
 | Extensions (manifests, packages, rules) | `crates/haku-core/src/extensions/` |
+| Password vault, sync bundles | `crates/haku-core/src/vault.rs`, `sync.rs`; browser side `crates/hakucx/src/browser/vault.rs`, `sync.rs`, `os_secrets.rs`; keep `docs/PASSWORDS-AND-SYNC.md` in step |
 | Extension API methods and runtime | `crates/hakucx/src/browser/ext_api.rs`, `browser/extensions.rs`, `extensions/api.js`; keep `docs/EXTENSIONS.md` in step |
 
 ## Build and check

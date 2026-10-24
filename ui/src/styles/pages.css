@@ -1437,3 +1437,109 @@
   font: 12px var(--font-mono);
   word-break: break-all;
 }
+
+/* password manager, payment methods, addresses, sync */
+.vault-page {
+  display: block;
+}
+.vault-page > * + * {
+  margin-top: 12px;
+}
+.vault-toolbar {
+  margin: 12px 0;
+}
+.vault-heading {
+  margin: 12px 0 6px;
+  color: var(--hx-accent);
+  font-size: 12px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.vault-empty {
+  padding: 12px 0;
+}
+.vault-list {
+  display: block;
+  padding-bottom: 8px;
+}
+.vault-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 40px;
+  border-top: 1px solid var(--hx-line);
+}
+.vault-row > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.vault-site {
+  flex: 0 0 30%;
+  font-weight: 600;
+}
+.vault-user {
+  flex: 0 0 25%;
+}
+.vault-secret {
+  flex: 1;
+  color: var(--hx-muted);
+  font-family: var(--font-mono);
+  font-size: 12px;
+}
+.vault-secret.shown {
+  color: var(--hx-text);
+}
+.vault-actions {
+  display: flex;
+  flex: none;
+  gap: 2px;
+}
+.icon-btn.danger:hover {
+  color: var(--hx-danger);
+}
+.vault-editor {
+  display: block;
+  margin: 8px 0 14px;
+  padding: 14px;
+  border: 1px solid var(--hx-line-strong);
+  border-radius: 8px;
+  background: var(--hx-elev-2);
+}
+.vault-editor > * + * {
+  margin-top: 10px;
+}
+.vault-editor .vault-heading {
+  margin-top: 0;
+}
+.sync-setup {
+  display: block;
+  padding: 6px 0 12px;
+}
+.sync-setup > * + * {
+  margin-top: 10px;
+}
+.sync-setup code {
+  font: 12px var(--font-mono);
+  color: var(--hx-accent);
+}
+.sync-device {
+  display: block;
+  padding: 6px 0;
+  border-top: 1px solid var(--hx-line);
+}
+.sync-device summary {
+  cursor: pointer;
+  padding: 4px 0;
+}
+.sync-tab {
+  display: flex;
+  gap: 8px;
+  width: 100%;
+  padding: 5px 8px 5px 22px;
+  border-radius: 6px;
+  text-align: left;
+}
+.sync-tab:hover {
+  background: var(--hx-hover);
+}

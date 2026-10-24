@@ -38,6 +38,16 @@ enum PageMessage {
     Media {
         playing: bool,
     },
+    /// A login form was submitted (the password manager offers to save it).
+    LoginSubmit {
+        username: String,
+        password: String,
+    },
+    /// A login, address or card field got focus (autofill offers saved entries).
+    FieldFocus {
+        kind: String,
+        rect: super::vault::CssRect,
+    },
     /// Class and id names newly seen on the page, for generic element hiding.
     Cosmetic {
         classes: Vec<String>,
@@ -201,6 +211,10 @@ impl Browser {
             return;
         };
         match message {
+            PageMessage::LoginSubmit { username, password } => {
+                self.vault_on_submit(tab, username, password);
+            }
+            PageMessage::FieldFocus { kind, rect } => self.vault_on_focus(tab, &kind, rect),
             PageMessage::Download { url, filename } => {
                 let Ok(parsed) = url::Url::parse(&url) else {
                     return;

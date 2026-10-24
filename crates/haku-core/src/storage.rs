@@ -193,6 +193,10 @@ impl ProfilePaths {
     pub fn extensions(&self) -> PathBuf {
         self.root.join("extensions")
     }
+    /// The encrypted password, card and address vault.
+    pub fn vault(&self) -> PathBuf {
+        self.root.join("vault.json")
+    }
     /// The installed-extension list.
     pub fn extension_list(&self) -> PathBuf {
         self.root.join("extensions.json")
