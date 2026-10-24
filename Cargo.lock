@@ -2733,7 +2733,7 @@ version = "0.1.0"
 dependencies = [
  "argon2",
  "aws-lc-rs",
- "base64 0.22.1",
+ "base64 0.23.1",
  "chacha20poly1305",
  "dirs",
  "flate2",
@@ -2783,7 +2783,7 @@ version = "0.1.0"
 dependencies = [
  "adblock",
  "arboard",
- "base64 0.22.1",
+ "base64 0.23.1",
  "content-security-policy",
  "cookie 0.18.2",
  "dirs",
