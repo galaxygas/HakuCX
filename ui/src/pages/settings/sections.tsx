@@ -11,6 +11,7 @@ import { ThemeCarousel } from "../../overlays/EasySetup";
 import { useStore } from "../../state/store";
 import { go } from "../InternalPage";
 import { SyncPanel } from "./autofill";
+import { CrashReportsRow, DefaultBrowserPanel, UpdatePanel } from "./system";
 import { action, custom, link, select, slider, toggle, unsupported, type SectionDef } from "./rows";
 
 const ENGINE_LIMIT = "Not supported by the Servo engine yet";
@@ -432,7 +433,7 @@ export const SECTIONS: SectionDef[] = [
           link("Site settings", "haku://settings/site-settings", "Permissions and content per site"),
           toggle("privacy", "pasteProtectHijack", "Paste Protect: warn when a site changes your clipboard"),
           toggle("privacy", "autoRemoveUnusedPermissions", "Automatically remove permissions from unused sites"),
-          unsupported("Send crash reports", "HakuCX never sends anything about you or your browsing"),
+          { kind: "custom", label: "Crash reports", render: () => <CrashReportsRow />, full: true },
           unsupported("Send feature usage statistics", "HakuCX has no telemetry"),
         ],
       },
@@ -484,7 +485,7 @@ export const SECTIONS: SectionDef[] = [
     label: "Default browser",
     icon: "globe",
     group: 1,
-    cards: [{ title: "Default browser", rows: [unsupported("Make HakuCX your default browser", "Comes with the Windows installer, which registers HakuCX with Windows")] }],
+    cards: [{ title: "Default browser", rows: [{ kind: "custom", label: "Make HakuCX your default browser", render: () => <DefaultBrowserPanel />, full: true }] }],
   },
   {
     id: "startup",
@@ -499,7 +500,7 @@ export const SECTIONS: SectionDef[] = [
           toggle("startup", "showStartPageFirst", "Display the start page first"),
           toggle("appearance", "splashScreen", "Splash screen on startup"),
           toggle("control", "keepAfterRestart", "Keep limiters enabled after browser restart"),
-          unsupported("Run when my computer starts", "Comes with the Windows installer"),
+          toggle("startup", "runAtLogin", "Run when my computer starts", "Starts HakuCX when you sign in to Windows"),
         ],
       },
     ],
@@ -595,7 +596,7 @@ export const SECTIONS: SectionDef[] = [
     label: "Update & recovery",
     icon: "refresh",
     group: 3,
-    cards: [{ title: "Update", rows: [link("Releases", "haku://about/", "HakuCX has no updater yet: new versions are published as GitHub releases"), unsupported("Automatic updates", "Comes with the signed updater")] }],
+    cards: [{ title: "Update", rows: [{ kind: "custom", label: "Updates", render: () => <UpdatePanel />, full: true }] }],
   },
 ];
 

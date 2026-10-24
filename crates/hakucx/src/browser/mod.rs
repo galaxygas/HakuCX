@@ -24,6 +24,7 @@ mod render;
 mod services;
 mod suggest;
 mod sync;
+mod system;
 mod tabs;
 mod tools;
 mod vault;
@@ -187,6 +188,8 @@ pub struct Browser {
     vault: RefCell<vault::VaultState>,
     /// Folder sync (see `sync.rs`).
     sync: RefCell<sync::SyncState>,
+    /// The updater (see `system.rs`).
+    update: RefCell<system::UpdateState>,
 
     // ---- services
     audio: RefCell<Audio>,
@@ -336,6 +339,7 @@ impl Browser {
             ext: RefCell::default(),
             vault: RefCell::default(),
             sync: RefCell::default(),
+            update: RefCell::default(),
             audio: RefCell::new(Audio::new()),
             blocker: Blocker::new(wake.clone()),
             download_engine: DownloadEngine::new(wake.clone()),
@@ -353,6 +357,7 @@ impl Browser {
         browser.create_ui_shell();
         browser.vault_load();
         browser.sync_load();
+        browser.apply_run_at_login();
         browser.load_extensions();
         for dir in &options.load_extensions {
             browser.ext_load_for_session(dir);
@@ -567,6 +572,9 @@ impl Browser {
         self.ext.borrow_mut().info_dirty = true;
         self.vault_emit();
         self.sync_emit();
+        self.system_emit();
+        self.update_emit();
+        self.crash_notice();
     }
 
     pub(crate) fn session_changed(&self) {
@@ -595,6 +603,7 @@ impl Browser {
             ui.set_hidpi_scale_factor(euclid::Scale::new(self.ui_scale()));
         }
         self.sync_settings_changed();
+        self.apply_run_at_login();
     }
 
     pub(crate) fn bookmarks_changed(&self) {

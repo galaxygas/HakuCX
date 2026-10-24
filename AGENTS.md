@@ -29,6 +29,8 @@ This file is the contract for anyone, human or AI, changing HakuCX. Read it befo
 | `haku://` serving and CSP | `crates/hakucx/src/protocol.rs` |
 | Requests HakuCX makes on its own | `docs/NETWORK.md` (must be updated with every new one) |
 | Extensions (manifests, packages, rules) | `crates/haku-core/src/extensions/` |
+| Windows integration, single instance, crash reports | `crates/hakucx/src/os_integration.rs` (registry keys must match `packaging/windows/installer.nsi`), `instance.rs`, `crash.rs` |
+| Updater, release packaging | `crates/haku-core/src/update.rs`, `crates/hakucx/src/browser/system.rs`, `crates/haku-release`, `packaging/windows/`, `.github/workflows/release.yml`; see `docs/RELEASING.md` |
 | Password vault, sync bundles | `crates/haku-core/src/vault.rs`, `sync.rs`; browser side `crates/hakucx/src/browser/vault.rs`, `sync.rs`, `os_secrets.rs`; keep `docs/PASSWORDS-AND-SYNC.md` in step |
 | Extension API methods and runtime | `crates/hakucx/src/browser/ext_api.rs`, `browser/extensions.rs`, `extensions/api.js`; keep `docs/EXTENSIONS.md` in step |
 

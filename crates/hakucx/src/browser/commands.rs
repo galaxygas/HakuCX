@@ -780,6 +780,11 @@ impl Browser {
             Command::SyncSetup { folder, passphrase } => self.sync_setup(folder, passphrase),
             Command::SyncNow => self.sync_now(),
             Command::SyncDisconnect => self.sync_disconnect(),
+            Command::MakeDefaultBrowser => self.make_default_browser(),
+            Command::UnregisterBrowser => self.unregister_browser(),
+            Command::CheckForUpdates => self.check_for_updates(),
+            Command::InstallUpdate => self.install_update(),
+            Command::OpenCrashReports => self.open_crash_reports(),
 
             // ---------------------------------------------------------- misc
             Command::Panic => self.toggle_panic(),

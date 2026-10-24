@@ -47,6 +47,7 @@ pub struct Settings {
     pub system: System,
     pub sync: Sync,
     pub autofill: Autofill,
+    pub updates: Updates,
     pub smart_home: SmartHome,
     pub ai: Ai,
     pub shortcuts: Shortcuts,
@@ -84,6 +85,7 @@ impl Default for Settings {
             system: System::default(),
             sync: Sync::default(),
             autofill: Autofill::default(),
+            updates: Updates::default(),
             smart_home: SmartHome::default(),
             ai: Ai::default(),
             shortcuts: Shortcuts::default(),
@@ -1598,6 +1600,23 @@ impl Default for Sync {
             open_tabs: true,
             passwords: false,
             speed_dial: true,
+        }
+    }
+}
+
+/// The updater.
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, TS)]
+#[serde(default, rename_all = "camelCase")]
+#[ts(export)]
+pub struct Updates {
+    /// Look for a new version once a day, and download it when there is one.
+    pub check_automatically: bool,
+}
+
+impl Default for Updates {
+    fn default() -> Self {
+        Self {
+            check_automatically: true,
         }
     }
 }

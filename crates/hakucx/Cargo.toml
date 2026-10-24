@@ -32,6 +32,7 @@ serde_json = { workspace = true }
 log = { workspace = true }
 include_dir = { workspace = true }
 haku-core = { workspace = true }
+haku-brand = { workspace = true }
 image = { workspace = true }
 base64 = { workspace = true }
 rfd = { workspace = true }
@@ -51,8 +52,15 @@ sha2 = { workspace = true }
 time = { workspace = true }
 zeroize = { workspace = true }
 
+[build-dependencies]
+haku-brand = { workspace = true }
+embed-resource = { workspace = true }
+
 [target.'cfg(windows)'.dependencies]
 # Servo's own shell uses ANGLE (EGL over D3D) on Windows instead of WGL.
 servo = { workspace = true, features = ["no-wgl"] }
 windows = { workspace = true }
 windows-future = { workspace = true }
+
+[dev-dependencies]
+tempfile = { workspace = true }

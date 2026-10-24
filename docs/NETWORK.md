@@ -16,6 +16,7 @@ Requests made by HakuCX code go out through `reqwest` (filter lists, downloads, 
 | Personal news panel | The RSS feeds listed in the panel (defaults: PC Gamer, Rock Paper Shotgun, Ars Technica gaming, The Verge) | When the panel is open | Close the panel or remove the feeds |
 | AI assistant | The provider you configure: `api.anthropic.com`, your OpenAI-compatible endpoint, or your local Ollama | Only when you send a message | Settings → AI (provider "None" or the assistant off) |
 | Downloads | The site you download from (with that site's cookies) | When you download a file | — |
+| Updates | `api.github.com` (latest release of `galaxygas/HakuCX`), then `github.com` / `objects.githubusercontent.com` for the installer and its signature when there is a new version | About a minute after start and then daily, only in copies built with the update key; or when you click Check for updates | Settings → Update → Update automatically |
 | Page source view | The page's own host, fetched again without your cookies | When you open View page source | — |
 
 Sidebar web panels (Twitch, Discord, WhatsApp, ...) are ordinary pages: they load only when you open them, and stay loaded until you close the panel.
@@ -24,4 +25,4 @@ Extensions you install make their own requests, like any page; HakuCX does not a
 
 Folder sync makes no network requests: HakuCX reads and writes encrypted files in the folder you choose, and your sync program (OneDrive, Dropbox, Syncthing, ...) moves them. The password manager makes none either.
 
-Not built yet, and listed here when they land: update checks (GitHub Releases), GX Lights (local only: Razer Chroma SDK on `localhost:54235`, OpenRGB on `127.0.0.1:6742`), MQTT smart home (your broker).
+Not built yet, and listed here when they land: GX Lights (local only: Razer Chroma SDK on `localhost:54235`, OpenRGB on `127.0.0.1:6742`), MQTT smart home (your broker).

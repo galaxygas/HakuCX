@@ -18,6 +18,7 @@ pub mod settings;
 pub mod storage;
 pub mod sync;
 pub mod themes;
+pub mod update;
 pub mod vault;
 
 /// Milliseconds since the Unix epoch.
