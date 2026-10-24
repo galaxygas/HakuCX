@@ -11,6 +11,7 @@ import { DownloadRow } from "../panels/ListPanels";
 import { ExtIcon } from "../pages/ExtensionsPage";
 import { loginsFor } from "../pages/settings/autofill";
 import { openInternal, useStore } from "../state/store";
+import { MediaPopupBody } from "../shell/Miniplayer";
 
 function PopupFrame({ children, className, align = "right", width = 340 }: { children: ReactNode; className?: string; align?: "left" | "right"; width?: number }) {
   const anchor = useStore((s) => s.popupAnchor);
@@ -52,6 +53,13 @@ export function Popups() {
       return <WorkspacesPopup />;
     case "downloads":
       return <DownloadsPopup />;
+    case "media":
+      return (
+        <PopupFrame width={340} className="media-popup">
+          <div className="popup-title display">Playing</div>
+          <MediaPopupBody />
+        </PopupFrame>
+      );
     case "extensions":
       return <ExtensionsPopup />;
     case "passwords":

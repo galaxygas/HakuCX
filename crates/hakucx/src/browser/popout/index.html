@@ -1,0 +1,31 @@
+<!doctype html>
+<!-- This Source Code Form is subject to the terms of the Mozilla Public
+   - License, v. 2.0. If a copy of the MPL was not distributed with this
+   - file, You can obtain one at https://mozilla.org/MPL/2.0/. -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>HakuCX video</title>
+<link rel="stylesheet" href="popout.css">
+<script src="popout.js" defer></script>
+</head>
+<body>
+<video id="video" playsinline></video>
+<div id="message" hidden></div>
+<div id="controls">
+  <div class="bar top">
+    <span id="title"></span>
+    <button id="back" title="Back to tab (Enter)">&#x2934;&#xFE0E; Back to tab</button>
+    <button id="close" class="icon" title="Close (Esc)">&#x2715;&#xFE0E;</button>
+  </div>
+  <div class="bar bottom">
+    <button id="play" class="icon" title="Play (Space)">&#x25B6;&#xFE0E;</button>
+    <span id="time">0:00</span>
+    <input id="seek" type="range" min="0" max="1000" value="0" aria-label="Position">
+    <span id="duration">0:00</span>
+    <button id="mute" class="icon" title="Mute (M)">&#x1F50A;&#xFE0E;</button>
+    <input id="volume" type="range" min="0" max="100" value="100" aria-label="Volume">
+  </div>
+</div>
+</body>
+</html>

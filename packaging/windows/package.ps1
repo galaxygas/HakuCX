@@ -11,6 +11,8 @@
 #
 # The Visual C++ runtime DLLs HakuCX needs are copied next to hakucx.exe (Microsoft allows
 # this "app-local" deployment), so HakuCX runs on a fresh Windows without installing them.
+# So are the GStreamer libraries and plugins for audio and video (LGPL; their licenses go in
+# licenses\gstreamer), which the build lists in gstreamer-files.txt.
 
 param(
   [switch]$SkipBuild,
@@ -22,6 +24,8 @@ Set-Location $root
 
 $version = (Select-String -Path "$root\Cargo.toml" -Pattern '^version = "([^"]+)"' | Select-Object -First 1).Matches[0].Groups[1].Value
 Write-Host "HakuCX $version"
+# GStreamer: needed to build (pkg-config) and shipped with the program.
+. "$PSScriptRoot\gstreamer.ps1"
 
 if (-not $SkipBuild) {
   cargo build --release -p hakucx -p haku-release
@@ -29,7 +33,7 @@ if (-not $SkipBuild) {
 }
 $target = if ($env:CARGO_TARGET_DIR) { $env:CARGO_TARGET_DIR } else { "$root\target" }
 $release = "$target\release"
-foreach ($f in "hakucx.exe", "libEGL.dll", "libGLESv2.dll", "haku-release.exe") {
+foreach ($f in "hakucx.exe", "libEGL.dll", "libGLESv2.dll", "haku-release.exe", "gstreamer-files.txt") {
   if (-not (Test-Path "$release\$f")) { throw "missing $release\$f (build first)" }
 }
 
@@ -47,6 +51,12 @@ New-Item -ItemType Directory -Force $stage | Out-Null
 Copy-Item "$release\hakucx.exe", "$release\libEGL.dll", "$release\libGLESv2.dll" $stage
 Copy-Item "$($crt.FullName)\*.dll" $stage
 Copy-Item "$root\LICENSE" "$stage\LICENSE.txt"
+$gstFiles = Get-Content "$release\gstreamer-files.txt" | Where-Object { $_ }
+foreach ($f in $gstFiles) { Copy-Item "$release\$f" $stage }
+Write-Host "GStreamer: $($gstFiles.Count) files"
+New-Item -ItemType Directory -Force "$stage\licenses" | Out-Null
+Copy-Item -Recurse "$env:GSTREAMER_1_0_ROOT_MSVC_X86_64\share\licenses" "$stage\licenses\gstreamer"
+Copy-Item "$root\docs\THIRD-PARTY.md" "$stage\licenses\THIRD-PARTY.md"
 & "$release\haku-release.exe" icon "$dist\stage\hakucx.ico"
 if ($LASTEXITCODE -ne 0) { throw "icon failed" }
 

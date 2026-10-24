@@ -1,6 +1,6 @@
 ﻿[workspace]
 resolver = "3"
-members = ["crates/hakucx", "crates/haku-core", "crates/haku-release", "crates/haku-brand"]
+members = ["crates/hakucx", "crates/haku-core", "crates/haku-release", "crates/haku-brand", "crates/haku-lights"]
 
 [workspace.package]
 version = "0.1.0"
@@ -44,7 +44,7 @@ open = "5"
 adblock = { version = "0.13", default-features = false, features = ["embedded-domain-resolver", "full-regex-handling"] }
 content-security-policy = "0.9"
 sysinfo = { version = "0.39", default-features = false, features = ["system"] }
-windows = { version = "0.62", features = ["Win32_Foundation", "Win32_Security", "Win32_System_JobObjects", "Win32_System_Threading", "Win32_System_SystemInformation", "Win32_UI_Input_KeyboardAndMouse", "Win32_Security_Cryptography", "Win32_System_WinRT", "Security_Credentials_UI", "Win32_System_Registry", "Win32_UI_Shell"] }
+windows = { version = "0.62", features = ["Win32_Foundation", "Win32_Security", "Win32_System_JobObjects", "Win32_System_Threading", "Win32_System_SystemInformation", "Win32_UI_Input_KeyboardAndMouse", "Win32_Security_Cryptography", "Win32_System_WinRT", "Security_Credentials_UI", "Win32_System_Registry", "Win32_UI_Shell", "Win32_Media_Audio", "Win32_Media_Audio_Endpoints", "Win32_System_Com", "Win32_System_Com_StructuredStorage", "Win32_System_Variant", "Win32_UI_WindowsAndMessaging"] }
 keyring = { version = "3.6", features = ["windows-native"] }
 rodio = { version = "0.23", default-features = false, features = ["playback"] }
 reqwest = { version = "0.13", default-features = false, features = ["rustls", "blocking", "http2", "charset", "gzip", "brotli", "deflate", "json"] }
@@ -70,6 +70,7 @@ aws-lc-rs = { version = "1.18", features = ["prebuilt-nasm"] }
 cookie = "0.18"
 haku-core = { path = "crates/haku-core" }
 haku-brand = { path = "crates/haku-brand" }
+haku-lights = { path = "crates/haku-lights" }
 # Puts the icon and version information into hakucx.exe.
 embed-resource = "3"
 

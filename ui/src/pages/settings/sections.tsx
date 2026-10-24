@@ -322,10 +322,10 @@ export const SECTIONS: SectionDef[] = [
         rows: [
           toggle("video", "popout", "Enable video pop out", "Watch a page's video in a small window that stays on top"),
           toggle("video", "autoPopout", "Automatically pop out videos when you switch tabs"),
-          toggle("video", "popoutTransparent", "Make pop out transparent"),
+          toggle("video", "popoutTransparent", "Make pop out transparent", "See through the pop-out window while the pointer is elsewhere"),
         ],
       },
-      { title: "Video pickup", rows: [toggle("video", "videoPickup", "Video pickup", "Show a button on videos to pop them out")] },
+      { title: "Video pickup", rows: [toggle("video", "videoPickup", "Video pickup", "Show a Pop out button when the pointer is over a video")] },
     ],
   },
   {

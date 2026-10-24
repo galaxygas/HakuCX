@@ -15,6 +15,12 @@ build = "build.rs"
 name = "hakucx"
 path = "src/main.rs"
 
+[features]
+default = ["media"]
+# Audio and video playback through GStreamer. Needs GStreamer (MSVC, with development files)
+# to build; its DLLs are copied next to the executable (see build.rs and docs/MEDIA.md).
+media = ["servo/media-gstreamer"]
+
 [dependencies]
 servo = { workspace = true }
 winit = { workspace = true }
@@ -33,6 +39,7 @@ log = { workspace = true }
 include_dir = { workspace = true }
 haku-core = { workspace = true }
 haku-brand = { workspace = true }
+haku-lights = { workspace = true }
 image = { workspace = true }
 base64 = { workspace = true }
 rfd = { workspace = true }

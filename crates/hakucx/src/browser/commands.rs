@@ -161,6 +161,7 @@ impl Browser {
                 relative_to,
             } => {
                 let url = url.unwrap_or_else(|| START_URL.to_owned());
+                self.lights_signal(haku_lights::effects::Signal::NewTab);
                 let placement = if relative_to.is_some() {
                     Placement::After
                 } else {
@@ -784,6 +785,8 @@ impl Browser {
             Command::UnregisterBrowser => self.unregister_browser(),
             Command::CheckForUpdates => self.check_for_updates(),
             Command::InstallUpdate => self.install_update(),
+            Command::LightsReconnect => self.lights_reconnect(),
+            Command::Media { tab, action } => self.media_command(&tab, action),
             Command::OpenCrashReports => self.open_crash_reports(),
 
             // ---------------------------------------------------------- misc

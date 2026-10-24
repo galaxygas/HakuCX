@@ -143,6 +143,9 @@ impl Settings {
             *level = (*level).clamp(0, 100);
         }
         self.lights.brightness = self.lights.brightness.clamp(0, 100);
+        if !LIGHT_STYLES.contains(&self.lights.animation_set.as_str()) {
+            self.lights.animation_set = "gx".into();
+        }
         self.start_page.dial_columns = self.start_page.dial_columns.clamp(2, 12);
         self.player.resume_after_secs = self.player.resume_after_secs.clamp(0, 60);
     }
@@ -630,6 +633,9 @@ impl Default for Sounds {
 // GX Lights (RGB peripherals)
 // ---------------------------------------------------------------------------------------------
 
+/// The idle looks GX Lights offers (`animation_set`).
+pub const LIGHT_STYLES: [&str; 4] = ["gx", "pulse", "wave", "static"];
+
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize, TS)]
 #[serde(default, rename_all = "camelCase")]
 #[ts(export)]
@@ -658,7 +664,7 @@ impl Default for Lights {
             dim_in_fullscreen: true,
             animations: true,
             music_visualizer: false,
-            animation_set: "dark-magic".into(),
+            animation_set: "gx".into(),
         }
     }
 }

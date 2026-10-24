@@ -18,6 +18,7 @@ mod extensions;
 mod favicon;
 mod instance;
 mod keyutils;
+mod lights;
 mod limits;
 mod os_integration;
 mod os_secrets;

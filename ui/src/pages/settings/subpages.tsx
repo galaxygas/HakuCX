@@ -9,6 +9,7 @@ import { Button, Select, Slider, Toggle } from "../../components/controls";
 import { Icon } from "../../components/Icon";
 import { send } from "../../ipc/bridge";
 import type { FilterList } from "../../ipc/generated/FilterList";
+import type { LightLink } from "../../ipc/generated/LightLink";
 import type { PermissionSetting } from "../../ipc/generated/PermissionSetting";
 import type { SearchEngine } from "../../ipc/generated/SearchEngine";
 import { BROWSER_SOUNDS, ENGINE_PERMISSIONS, KEYBOARD_PACKS, PERMISSION_LABELS, SHORTCUT_LABELS, SOUND_PACKS } from "../../lib/catalog";
@@ -104,44 +105,84 @@ export function KeyboardSoundsPage() {
 
 // ------------------------------------------------------------------ GX Lights
 
+const LINK_TEXT: Record<string, string> = { off: "Off", connecting: "Connecting...", connected: "Connected", unavailable: "Not available" };
+
+function LinkStatus({ link, connected }: { link: LightLink | undefined; connected: string }) {
+  if (!link || link.state === "off") return null;
+  const text = link.state === "connected" ? connected : link.message || LINK_TEXT[link.state] || link.state;
+  return <small className={link.state === "unavailable" ? "warn-text" : "muted"}>{text}</small>;
+}
+
 export function LightsPage() {
   const lights = useStore((s) => s.settings?.lights);
+  const status = useStore((s) => s.lights);
   if (!lights) return null;
-  const off = "HakuCX does not drive lighting devices yet. These choices are saved and take effect once device support lands.";
+  const off = !lights.enabled;
+  const openrgbDevices = status?.openrgb.devices ?? [];
   return (
     <>
-      <div className="callout">
-        <Icon name="info" size={16} />
-        <span>{off}</span>
-      </div>
       <div className="settings-card card">
-        <Line label="GX Lights" description="Match Razer Chroma and OpenRGB devices to your theme">
+        <Line label="GX Lights" description="Light your keyboard, mouse and other RGB devices in your theme's colors, with flashes when tabs open, downloads finish or a limiter turns on.">
           <Toggle on={lights.enabled} onChange={(v) => patch({ lights: { enabled: v } })} label="GX Lights" />
         </Line>
-        <Line label="Razer Chroma" description="Through the local Razer Synapse service">
-          <Toggle on={lights.razerChroma} onChange={(v) => patch({ lights: { razerChroma: v } })} label="Razer Chroma" disabled={!lights.enabled} />
-        </Line>
-        <Line label="OpenRGB" description="ASUS, Corsair, Logitech, MSI and more through an OpenRGB SDK server">
-          <Toggle on={lights.openrgb} onChange={(v) => patch({ lights: { openrgb: v } })} label="OpenRGB" disabled={!lights.enabled} />
-        </Line>
-        <Line label="OpenRGB server">
+        <div className="setting-line">
+          <div className="setting-line-text">
+            <span>Razer Chroma</span>
+            <small className="muted">Razer devices, through Razer Synapse's Chroma SDK on this computer. Synapse takes the lights back when HakuCX closes.</small>
+            {!off && lights.razerChroma && <LinkStatus link={status?.razer} connected="Connected to Razer Chroma" />}
+          </div>
+          <Toggle on={lights.razerChroma} onChange={(v) => patch({ lights: { razerChroma: v } })} label="Razer Chroma" disabled={off} />
+        </div>
+        <div className="setting-line">
+          <div className="setting-line-text">
+            <span>OpenRGB</span>
+            <small className="muted">ASUS, Corsair, Logitech, MSI, SteelSeries and more, through OpenRGB with its SDK server turned on. Each device gets its own effect back when HakuCX closes.</small>
+            {!off && lights.openrgb && (
+              <LinkStatus link={status?.openrgb} connected={openrgbDevices.length ? `Lighting ${openrgbDevices.join(", ")}` : "Connected; OpenRGB reports no devices"} />
+            )}
+          </div>
+          <Toggle on={lights.openrgb} onChange={(v) => patch({ lights: { openrgb: v } })} label="OpenRGB" disabled={off} />
+        </div>
+        <Line label="OpenRGB server" description="Address and port of the OpenRGB SDK server (6742 unless you changed it)">
           <div className="row">
-            <input className="text-input" style={{ width: 150 }} defaultValue={lights.openrgbHost} onBlur={(e) => patch({ lights: { openrgbHost: e.target.value.trim() || "127.0.0.1" } })} />
-            <input className="text-input" style={{ width: 80 }} type="number" defaultValue={lights.openrgbPort} onBlur={(e) => patch({ lights: { openrgbPort: Number(e.target.value) || 6742 } })} />
+            <input className="text-input" style={{ width: 150 }} defaultValue={lights.openrgbHost} disabled={off || !lights.openrgb} onBlur={(e) => patch({ lights: { openrgbHost: e.target.value.trim() || "127.0.0.1" } })} />
+            <input className="text-input" style={{ width: 80 }} type="number" min={1} max={65535} defaultValue={lights.openrgbPort} disabled={off || !lights.openrgb} onBlur={(e) => patch({ lights: { openrgbPort: Number(e.target.value) || 6742 } })} />
           </div>
         </Line>
-        <SliderLine label="Brightness" value={lights.brightness} min={0} max={100} onCommit={(v) => patch({ lights: { brightness: v } })} format={(v) => `${v}%`} disabled={!lights.enabled} />
-        <Line label="Animations">
-          <Toggle on={lights.animations} onChange={(v) => patch({ lights: { animations: v } })} label="Animations" disabled={!lights.enabled} />
+        <Line label="Connect again" description="HakuCX retries on its own every 15 seconds">
+          <Button icon="refresh" disabled={off} onClick={() => send({ type: "lights-reconnect" })}>
+            Reconnect
+          </Button>
         </Line>
-        <Line label="Animation set">
-          <Select value={lights.animationSet} options={[{ value: "gx", label: "GX" }, { value: "pulse", label: "Pulse" }, { value: "wave", label: "Wave" }, { value: "static", label: "Static" }]} onChange={(v) => patch({ lights: { animationSet: v } })} disabled={!lights.enabled} />
+      </div>
+      <div className="settings-card card">
+        <SliderLine label="Brightness" value={lights.brightness} min={0} max={100} onCommit={(v) => patch({ lights: { brightness: v } })} format={(v) => `${v}%`} disabled={off} />
+        <Line label="Animation set" description="How the lights look while nothing is happening">
+          <Select
+            value={lights.animationSet}
+            options={[
+              { value: "gx", label: "GX (slow color drift)" },
+              { value: "pulse", label: "Pulse (breathing)" },
+              { value: "wave", label: "Wave (a band runs across)" },
+              { value: "static", label: "Static" },
+            ]}
+            onChange={(v) => patch({ lights: { animationSet: v } })}
+            disabled={off}
+          />
         </Line>
-        <Line label="Music visualizer">
-          <Toggle on={lights.musicVisualizer} onChange={(v) => patch({ lights: { musicVisualizer: v } })} label="Music visualizer" disabled={!lights.enabled} />
+        <Line label="Browser event effects" description="Flash when HakuCX starts, a tab opens, a download finishes, a site sends a notification or a limiter turns on">
+          <Toggle on={lights.animations} onChange={(v) => patch({ lights: { animations: v } })} label="Browser event effects" disabled={off} />
         </Line>
-        <Line label="Dim lights in fullscreen">
-          <Toggle on={lights.dimInFullscreen} onChange={(v) => patch({ lights: { dimInFullscreen: v } })} label="Dim lights in fullscreen" disabled={!lights.enabled} />
+        <div className="setting-line">
+          <div className="setting-line-text">
+            <span>Music visualizer</span>
+            <small className="muted">The lights follow how loud your computer is playing (the level Windows' volume mixer shows; no sound is recorded).</small>
+            {!off && lights.musicVisualizer && status && !status.meter && <small className="warn-text">No sound output device found.</small>}
+          </div>
+          <Toggle on={lights.musicVisualizer} onChange={(v) => patch({ lights: { musicVisualizer: v } })} label="Music visualizer" disabled={off} />
+        </div>
+        <Line label="Dim lights in fullscreen" description="Lower the lights while a video or page is fullscreen">
+          <Toggle on={lights.dimInFullscreen} onChange={(v) => patch({ lights: { dimInFullscreen: v } })} label="Dim lights in fullscreen" disabled={off} />
         </Line>
       </div>
     </>

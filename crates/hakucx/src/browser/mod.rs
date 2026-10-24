@@ -17,9 +17,12 @@ mod controls;
 mod delegate;
 mod ext_api;
 mod extensions;
+mod gx_lights;
 mod input;
+mod media;
 mod page_scripts;
 mod panels;
+pub mod popout;
 mod render;
 mod services;
 mod suggest;
@@ -190,6 +193,21 @@ pub struct Browser {
     sync: RefCell<sync::SyncState>,
     /// The updater (see `system.rs`).
     update: RefCell<system::UpdateState>,
+    /// GX Lights (see `gx_lights.rs`).
+    lights: RefCell<gx_lights::LightsState>,
+    /// Media across tabs and the Player (see `media.rs`).
+    media: RefCell<media::MediaState>,
+    /// The video pop-out window (see `popout.rs`), and one waiting for the app to create it.
+    popout: RefCell<Option<popout::Popout>>,
+    popout_request: RefCell<Option<popout::PopoutSpec>>,
+    popout_counter: Cell<u64>,
+    /// Where the last pop out was, for the next one.
+    popout_geometry: Cell<
+        Option<(
+            winit::dpi::PhysicalPosition<i32>,
+            winit::dpi::PhysicalSize<u32>,
+        )>,
+    >,
 
     // ---- services
     audio: RefCell<Audio>,
@@ -340,6 +358,12 @@ impl Browser {
             vault: RefCell::default(),
             sync: RefCell::default(),
             update: RefCell::default(),
+            lights: RefCell::default(),
+            media: RefCell::default(),
+            popout: RefCell::new(None),
+            popout_request: RefCell::new(None),
+            popout_counter: Cell::new(0),
+            popout_geometry: Cell::new(None),
             audio: RefCell::new(Audio::new()),
             blocker: Blocker::new(wake.clone()),
             download_engine: DownloadEngine::new(wake.clone()),
@@ -358,6 +382,7 @@ impl Browser {
         browser.vault_load();
         browser.sync_load();
         browser.apply_run_at_login();
+        browser.lights_apply();
         browser.load_extensions();
         for dir in &options.load_extensions {
             browser.ext_load_for_session(dir);
@@ -574,6 +599,7 @@ impl Browser {
         self.sync_emit();
         self.system_emit();
         self.update_emit();
+        self.lights_emit();
         self.crash_notice();
     }
 
@@ -604,6 +630,8 @@ impl Browser {
         }
         self.sync_settings_changed();
         self.apply_run_at_login();
+        self.lights_apply();
+        self.popout_settings_changed();
     }
 
     pub(crate) fn bookmarks_changed(&self) {
@@ -797,6 +825,8 @@ impl Browser {
             return;
         }
         info!("shutting down");
+        self.lights_shutdown();
+        drop(self.popout.borrow_mut().take());
         if self.panic_active.get()
             && let Some(saved) = self.panic_restore.borrow_mut().take()
         {

@@ -10,6 +10,7 @@ import { clsx, isInternal } from "../lib/util";
 import { useStore } from "../state/store";
 import { Input } from "../components/Field";
 import { PinnedExtensions } from "./ExtensionButtons";
+import { ToolbarMiniplayer } from "./Miniplayer";
 import { loginsFor } from "../pages/settings/autofill";
 
 let requestId = 1;
@@ -53,6 +54,7 @@ export function Toolbar() {
         <Icon name="crop" size={17} />
       </button>
       <span className="toolbar-divider" />
+      <ToolbarMiniplayer />
       <PinnedExtensions />
       <button className={clsx("tool-btn", popup === "extensions" && "active")} title="Extensions" onClick={(e) => openPopup("extensions", anchor(e))}>
         <Icon name="puzzle" size={17} />

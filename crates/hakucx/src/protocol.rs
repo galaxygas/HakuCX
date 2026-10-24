@@ -6,6 +6,7 @@
 //!
 //! - `haku://ui/...` serves the browser UI, compiled into the binary from `ui/dist`.
 //! - `haku://wallpaper/<file>` serves the profile's custom wallpapers.
+//! - `haku://popout/` is the video pop-out window's page (see `browser::popout`).
 //!
 //! Internal pages such as `haku://settings/` are not served here: the UI shell renders them
 //! itself (see `browser::tabs`), and web content is never allowed to navigate to `haku://`.
@@ -32,6 +33,23 @@ const UI_CSP: &str = "default-src 'self' haku:; script-src 'self' haku:; \
      font-src 'self' haku: data:; connect-src 'self' haku: https:; media-src 'self' haku: blob: data:; \
      frame-src 'none'; object-src 'none'; frame-ancestors 'none'; base-uri 'none'";
 
+/// Content-Security-Policy for the video pop-out page: its own script and style, and video and
+/// poster images from the web; nothing else. Inline styles are allowed because Servo draws form
+/// controls (the seek and volume sliders) with them.
+const POPOUT_CSP: &str = "default-src 'none'; script-src haku:; style-src haku: 'unsafe-inline'; \
+     media-src https: http:; img-src https: http: data:; base-uri 'none'; form-action 'none'; \
+     frame-ancestors 'none'";
+
+/// The pop-out page's files.
+fn popout_file(path: &str) -> Option<&'static [u8]> {
+    match path {
+        "index.html" => Some(include_bytes!("browser/popout/index.html")),
+        "popout.js" => Some(include_bytes!("browser/popout/popout.js")),
+        "popout.css" => Some(include_bytes!("browser/popout/popout.css")),
+        _ => None,
+    }
+}
+
 pub struct HakuProtocolHandler {
     wallpapers: Option<PathBuf>,
 }
@@ -44,6 +62,7 @@ impl HakuProtocolHandler {
     fn lookup(&self, host: &str, path: &str) -> Option<Vec<u8>> {
         match host {
             "ui" => UI_DIST.get_file(path).map(|f| f.contents().to_vec()),
+            "popout" => popout_file(path).map(<[u8]>::to_vec),
             "wallpaper" => {
                 let dir = self.wallpapers.as_ref()?;
                 // Only plain file names that we created (custom-<ms>.<ext>).
@@ -94,7 +113,7 @@ impl ProtocolHandler for HakuProtocolHandler {
                 response.headers.typed_insert(ContentType::from(mime));
                 response.headers.insert(
                     HeaderName::from_static("content-security-policy"),
-                    HeaderValue::from_static(UI_CSP),
+                    HeaderValue::from_static(if host == "popout" { POPOUT_CSP } else { UI_CSP }),
                 );
                 response.headers.insert(
                     HeaderName::from_static("x-content-type-options"),
