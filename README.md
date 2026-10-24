@@ -2,7 +2,7 @@
 
 HakuCX is an independent, open-source desktop browser with a GX-style interface: themes, wallpapers, sounds, a sidebar, resource limiters and deep customization. It is built in **Rust** on the **[Servo](https://servo.org) web engine**. It is not Chromium, not Electron, and not affiliated with Opera.
 
-> **Status: early development.** The engine integration, compositor and core state are working. The browser UI, GX features and the extension runtime are being built milestone by milestone (see [the roadmap](#roadmap)). Expect sites that break: Servo is younger than Blink and Gecko.
+> **Status: early development.** Browsing, tabs, workspaces, islands, split screen, history, bookmarks, Speed Dial, downloads, ad and tracker blocking, the full GX-style interface and settings, GX Control, GX Cleaner, shaders, web mods, sounds, GX Corner and a bring-your-own-key AI assistant work today. Extensions, the password manager, sync, GX Lights and the installer are still being built (see [the roadmap](#roadmap)). Expect sites that break: Servo is younger than Blink and Gecko.
 
 ## Why
 
@@ -51,7 +51,8 @@ The first build compiles all of Servo (about 600 crates) and takes a while on a 
 | Path | What it is |
 |---|---|
 | `crates/hakucx` | The browser binary: window, Servo embedding, compositor, input routing, IPC |
-| `crates/haku-core` | Engine-independent state: settings, themes, tabs/workspaces/islands, persistence |
+| `crates/haku-core` | Engine-independent state: settings, themes, tabs/workspaces/islands, persistence, the IPC protocol |
+| `ui/` | The browser interface (React + TypeScript), rendered by Servo in a transparent layer over the pages |
 | `docs/` | Architecture, research, agent guidance |
 
 See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for how the pieces fit together.
@@ -62,12 +63,12 @@ See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for how the pieces fit together
 |---|---|---|
 | M0 | Servo embedding spike: transparent HTML UI composited over pages, IPC, interception | done |
 | M1 | Repository foundation, CI, contributor and agent docs | done |
-| M2 | Core browser: sessions, workspaces, islands, history, bookmarks, Speed Dial, downloads | in progress |
-| M3 | GX-fidelity UI: tab strip, sidebar, Easy Setup, settings, themes, wallpapers | planned |
-| M4 | Ad/tracker blocking, privacy, permissions, proxy/VPN, downloads | planned |
-| M5 | GX Control (kernel limits), Cleaner, shaders, web mods, sounds, lights, player, video tools | planned |
+| M2 | Core browser: sessions, workspaces, islands, history, bookmarks, Speed Dial, downloads | done |
+| M3 | GX-fidelity UI: tab strip, sidebar, Easy Setup, settings, themes, wallpapers | done |
+| M4 | Ad/tracker blocking, privacy, permissions, proxy/VPN, downloads | mostly done (third-party cookie control and DoH need engine support) |
+| M5 | GX Control (kernel limits), Cleaner, shaders, web mods, sounds, lights, player, video tools | in progress: GX Lights, video pop-out and the miniplayer remain |
 | M6 | WebExtensions runtime (Chrome MV2/MV3, Firefox) | planned |
-| M7 | Mods, Corner, AI, password manager, sync | planned |
+| M7 | Mods, Corner, AI, password manager, sync | in progress: Mods, GX Corner, Rewards and AI work; password manager and sync remain |
 | M8 | Installer, updater, default-browser integration | planned |
 
 ## Contributing

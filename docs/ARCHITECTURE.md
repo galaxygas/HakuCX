@@ -17,15 +17,18 @@ HakuCX is a Rust application that embeds the Servo web engine (`servo` crate, pi
 ## Rendering
 
 - Every webview renders into a `TextureRenderingContext` (`crates/hakucx/src/texture_context.rs`), our implementation of Servo's `RenderingContext` trait that renders into a GL texture we own. Servo's built-in `OffscreenRenderingContext` only offers an opaque framebuffer blit, which cannot layer a transparent UI over a page.
-- Servo creates **one painter (WebRender instance) per rendering context**. HakuCX therefore keeps a small fixed set of contexts: the UI shell, the shared page context for tabs (only the active tab is shown), and later a second page context for split screen and contexts for sidebar web panels and the video pop-out.
+- Servo creates **one painter (WebRender instance) per rendering context**. HakuCX therefore keeps a small fixed set of contexts: the UI shell, the shared page context for tabs (only the active tab is shown), a second page context for split screen, and one for sidebar web panels.
 - Servo's clear color (`shell_background_color_rgba`) is fully transparent, so UI areas without a background let the page show through. The compositor paints a white underlay below pages, because pages without a background are expected to be white.
 - The compositor (`compositor.rs`) draws premultiplied-alpha textured quads with `glow`, using GLSL ES 3.0 on ANGLE and GLSL 3.30 on desktop GL.
-- `backdrop-filter` in the UI cannot blur the page, because the page is a different texture. Glass effects over pages are done by the compositor (blur regions reported by the UI).
+- `backdrop-filter` and `mask-image` do not render in Servo 0.7, and in any case the UI could not blur the page, because the page is a different texture.
+- Servo draws inline `<svg>` as a separate image: `currentColor`, CSS variables and web fonts never reach it. UI icons are therefore glyphs from the Lucide icon font, and the few SVG drawings (logo, gauges, sparklines, wallpapers) get concrete colors from the theme palette in the store (`useThemeColor`).
+- `WebView::resize` must be called without resizing the rendering context first: Servo skips the resize when the context already has the new size.
 
 ## Input
 
 - Pointer events are hit-tested in Rust: inside the page rect they go to the active page (translated to page coordinates) unless the UI reports an open overlay (menus, popovers). Everything else goes to the UI shell.
-- Keyboard input goes to whichever view has focus; focus follows clicks. Browser-level shortcuts are matched in Rust before forwarding.
+- Keyboard input goes to whichever view has focus; focus follows clicks. Browser-level shortcuts are matched in Rust before forwarding (paused while the UI records a shortcut, `key-capture`).
+- After handling every window event or wake-up, the app pumps its queues, calls `Servo::spin_event_loop()` so the input reaches Servo immediately (as servoshell does), and pumps again. Without the second spin, typed text waits for the next unrelated event before it is shown.
 
 ## UI ↔ core IPC
 
@@ -35,7 +38,11 @@ HakuCX is a Rust application that embeds the Servo web engine (`servo` crate, pi
 
 ## Internal pages
 
-`haku://<host>/<path>` is served by `HakuProtocolHandler` from assets compiled into the binary. Every response carries a strict Content-Security-Policy. Internal pages never get IPC access unless they are the UI shell.
+`haku://ui/` (the UI shell) is served by `HakuProtocolHandler` from `ui/dist`, compiled into the binary, with a strict Content-Security-Policy. Other internal pages (`haku://start/`, `haku://settings/...`, history, bookmarks, downloads, mods, GX Corner, ...) are not separate webviews: the UI shell draws them inside the page area while the tab shows an internal URL, so they share the UI's IPC channel and nothing else does. Web content is never allowed to navigate to `haku:`.
+
+## UI state
+
+The UI keeps a mirror of the core's state in a Zustand store (`ui/src/state/store.ts`), updated only by events from Rust. Selectors must return stable values: a selector that returns a fresh `[]` or object on every call makes React re-render forever (use the shared `NONE` constant).
 
 ## State
 

@@ -7,6 +7,14 @@ updates:
     ignore:
       # Servo releases monthly with breaking API changes; upgrade it deliberately.
       - dependency-name: servo
+      # These must match the versions Servo itself uses: Servo's RenderingContext trait and
+      # embedding API expose their types. Bump them together with Servo, never alone.
+      - dependency-name: glow
+      - dependency-name: gleam
+      - dependency-name: surfman
+      - dependency-name: winit
+      - dependency-name: euclid
+      - dependency-name: rusqlite
     open-pull-requests-limit: 5
   - package-ecosystem: github-actions
     directory: /
