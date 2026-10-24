@@ -1,0 +1,35 @@
+<!doctype html>
+<!-- This Source Code Form is subject to the terms of the Mozilla Public
+   - License, v. 2.0. If a copy of the MPL was not distributed with this
+   - file, You can obtain one at https://mozilla.org/MPL/2.0/. -->
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#0f0d14" />
+    <meta name="referrer" content="no-referrer" />
+    <title>My Flow · HakuCX</title>
+  </head>
+  <body>
+    <header class="top">
+      <div class="brand">
+        <span class="logo">H</span>
+        <div>
+          <strong>My Flow</strong>
+          <small id="status">Not connected</small>
+        </div>
+      </div>
+    </header>
+    <main id="list" aria-live="polite"></main>
+    <p id="notice" hidden></p>
+    <form id="composer" hidden>
+      <label class="attach" title="Send a file">
+        <input id="file" type="file" />
+        <span aria-hidden="true">+</span>
+      </label>
+      <textarea id="text" rows="1" placeholder="Note or link" maxlength="20000"></textarea>
+      <button id="send" type="submit">Send</button>
+    </form>
+    <script type="module" src="./src/flow/main.ts"></script>
+  </body>
+</html>

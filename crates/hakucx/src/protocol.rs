@@ -23,7 +23,7 @@ use servo::protocol_handler::{
 };
 
 /// The production UI, built by `build.rs` from `ui/`.
-static UI_DIST: include_dir::Dir<'static> =
+pub(crate) static UI_DIST: include_dir::Dir<'static> =
     include_dir::include_dir!("$CARGO_MANIFEST_DIR/../../ui/dist");
 
 /// Content-Security-Policy for the UI: its own scripts only, no inline script, and network

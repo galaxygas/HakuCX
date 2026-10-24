@@ -11,7 +11,8 @@ import { AiPanel } from "../panels/AiPanel";
 import { CleanerPanel } from "../panels/CleanerPanel";
 import { ControlPanel } from "../panels/ControlPanel";
 import { BookmarksPanel, DownloadsPanel, HistoryPanel, TabsPanel } from "../panels/ListPanels";
-import { FlowPanel, NewsPanel, PinboardsPanel, PlayerPanel, RewardsPanel } from "../panels/MiscPanels";
+import { FlowPanel } from "../panels/FlowPanel";
+import { NewsPanel, PinboardsPanel, PlayerPanel, RewardsPanel } from "../panels/MiscPanels";
 import { ShadersPanel } from "../panels/ShadersPanel";
 import { useStore } from "../state/store";
 

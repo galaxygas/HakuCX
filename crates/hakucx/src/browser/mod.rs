@@ -17,6 +17,7 @@ mod controls;
 mod delegate;
 mod ext_api;
 mod extensions;
+mod flow;
 mod gx_lights;
 mod input;
 mod media;
@@ -195,6 +196,8 @@ pub struct Browser {
     update: RefCell<system::UpdateState>,
     /// GX Lights (see `gx_lights.rs`).
     lights: RefCell<gx_lights::LightsState>,
+    /// My Flow (see `flow.rs`).
+    flow: RefCell<flow::FlowState>,
     /// Media across tabs and the Player (see `media.rs`).
     media: RefCell<media::MediaState>,
     /// The video pop-out window (see `popout.rs`), and one waiting for the app to create it.
@@ -360,6 +363,7 @@ impl Browser {
             update: RefCell::default(),
             lights: RefCell::default(),
             media: RefCell::default(),
+            flow: RefCell::default(),
             popout: RefCell::new(None),
             popout_request: RefCell::new(None),
             popout_counter: Cell::new(0),
@@ -383,6 +387,7 @@ impl Browser {
         browser.sync_load();
         browser.apply_run_at_login();
         browser.lights_apply();
+        browser.flow_apply();
         browser.load_extensions();
         for dir in &options.load_extensions {
             browser.ext_load_for_session(dir);
@@ -600,6 +605,7 @@ impl Browser {
         self.system_emit();
         self.update_emit();
         self.lights_emit();
+        self.flow_emit();
         self.crash_notice();
     }
 
@@ -632,6 +638,7 @@ impl Browser {
         self.apply_run_at_login();
         self.lights_apply();
         self.popout_settings_changed();
+        self.flow_apply();
     }
 
     pub(crate) fn bookmarks_changed(&self) {
@@ -826,6 +833,7 @@ impl Browser {
         }
         info!("shutting down");
         self.lights_shutdown();
+        self.flow_shutdown();
         drop(self.popout.borrow_mut().take());
         if self.panic_active.get()
             && let Some(saved) = self.panic_restore.borrow_mut().take()

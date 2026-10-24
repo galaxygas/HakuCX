@@ -40,6 +40,8 @@ include_dir = { workspace = true }
 haku-core = { workspace = true }
 haku-brand = { workspace = true }
 haku-lights = { workspace = true }
+tiny_http = { workspace = true }
+arboard = { workspace = true }
 image = { workspace = true }
 base64 = { workspace = true }
 rfd = { workspace = true }

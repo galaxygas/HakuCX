@@ -9,6 +9,7 @@
 
 pub mod bookmarks;
 pub mod extensions;
+pub mod flow;
 pub mod history;
 pub mod ipc;
 pub mod omnibox;

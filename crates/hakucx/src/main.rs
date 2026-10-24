@@ -16,6 +16,7 @@ mod crash;
 mod downloads;
 mod extensions;
 mod favicon;
+mod flow_server;
 mod instance;
 mod keyutils;
 mod lights;

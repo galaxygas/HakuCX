@@ -27,7 +27,6 @@ declare global {
   interface Window {
     __haku?: {
       receive(events: Event[]): void;
-      copy(text: string): void;
     };
   }
 }
@@ -44,29 +43,12 @@ window.__haku = {
       }
     }
   },
-  copy(text: string) {
-    copyText(text);
-  },
 };
 
-/** Copy through a hidden textarea; works without clipboard permissions. */
+/** Copy to the system clipboard (the browser core writes it; Servo has no clipboard API for
+ * pages, the UI included). */
 export function copyText(text: string): void {
-  const area = document.createElement("textarea");
-  area.value = text;
-  area.setAttribute("readonly", "");
-  area.style.position = "fixed";
-  area.style.opacity = "0";
-  document.body.appendChild(area);
-  area.select();
-  try {
-    document.execCommand("copy");
-  } catch {
-    // Fall through to the async API below.
-  }
-  area.remove();
-  if (navigator.clipboard?.writeText) {
-    navigator.clipboard.writeText(text).catch(() => {});
-  }
+  send({ type: "copy-text", text });
 }
 
 window.addEventListener("error", (e) => {

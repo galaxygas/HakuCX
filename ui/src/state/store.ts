@@ -21,6 +21,7 @@ import type { SyncStatus } from "../ipc/generated/SyncStatus";
 import type { SystemInfo } from "../ipc/generated/SystemInfo";
 import type { UpdateStatus } from "../ipc/generated/UpdateStatus";
 import type { LightsStatus } from "../ipc/generated/LightsStatus";
+import type { FlowStatus } from "../ipc/generated/FlowStatus";
 import type { VaultStatus } from "../ipc/generated/VaultStatus";
 import type { Event } from "../ipc/generated/Event";
 import type { Metrics } from "../ipc/generated/Metrics";
@@ -132,6 +133,7 @@ type State = {
   system: SystemInfo | null;
   update: UpdateStatus | null;
   lights: LightsStatus | null;
+  flow: FlowStatus | null;
 
   panel: string | null;
   popup: Popup;
@@ -221,6 +223,7 @@ export const useStore = create<State & Actions>((set, get) => ({
   system: null,
   update: null,
   lights: null,
+  flow: null,
 
   panel: null,
   popup: null,
@@ -414,6 +417,9 @@ export const useStore = create<State & Actions>((set, get) => ({
         break;
       case "lights":
         set({ lights: event.status });
+        break;
+      case "flow":
+        set({ flow: event.status });
         break;
       case "update": {
         const before = get().update?.state;

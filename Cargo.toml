@@ -71,6 +71,10 @@ cookie = "0.18"
 haku-core = { path = "crates/haku-core" }
 haku-brand = { path = "crates/haku-brand" }
 haku-lights = { path = "crates/haku-lights" }
+# My Flow's local-network page for phones (plain HTTP/1.1, no TLS).
+tiny_http = "0.12"
+# The system clipboard (the same library Servo's default clipboard uses).
+arboard = { version = "3.6", default-features = false }
 # Puts the icon and version information into hakucx.exe.
 embed-resource = "3"
 

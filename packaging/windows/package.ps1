@@ -25,7 +25,8 @@ Set-Location $root
 $version = (Select-String -Path "$root\Cargo.toml" -Pattern '^version = "([^"]+)"' | Select-Object -First 1).Matches[0].Groups[1].Value
 Write-Host "HakuCX $version"
 # GStreamer: needed to build (pkg-config) and shipped with the program.
-. "$PSScriptRoot\gstreamer.ps1"
+# (Called, not dot-sourced: it only sets environment variables, which the whole process shares.)
+& "$PSScriptRoot\gstreamer.ps1"
 
 if (-not $SkipBuild) {
   cargo build --release -p hakucx -p haku-release
@@ -63,7 +64,7 @@ if ($LASTEXITCODE -ne 0) { throw "icon failed" }
 # Portable zip: the same files plus the marker that keeps data next to the program.
 $portable = "$dist\stage\portable\HakuCX"
 New-Item -ItemType Directory -Force $portable | Out-Null
-Copy-Item "$stage\*" $portable
+Copy-Item "$stage\*" $portable -Recurse
 Set-Content -Path "$portable\portable" -Value "HakuCX keeps its data in the Data folder next to hakucx.exe while this file exists." -Encoding utf8
 $zip = "$dist\HakuCX-$version-x64-portable.zip"
 if (Test-Path $zip) { Remove-Item $zip }

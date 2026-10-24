@@ -4,7 +4,7 @@
 
 # GStreamer for building HakuCX with audio and video (see docs/MEDIA.md).
 #
-#   . packaging\windows\gstreamer.ps1             set PATH and PKG_CONFIG_PATH in this shell
+#   packaging\windows\gstreamer.ps1               set PATH and PKG_CONFIG_PATH in this PowerShell
 #   packaging\windows\gstreamer.ps1 -Install      download the official installer (checksum
 #                                                 checked), install it for this user, then set up
 #
@@ -42,14 +42,14 @@ if ($Install -and -not (Find-GStreamer)) {
   if ($p.ExitCode -ne 0) { throw "GStreamer installer failed ($($p.ExitCode))" }
 }
 
-$root = Find-GStreamer
-if (-not $root) { throw "GStreamer (MSVC x86_64 with development files) not found; run this script with -Install" }
-$env:GSTREAMER_1_0_ROOT_MSVC_X86_64 = $root
-$env:PKG_CONFIG_PATH = "$root\lib\pkgconfig"
-if (-not ($env:PATH -split ";" | Where-Object { $_ -eq "$root\bin" })) { $env:PATH = "$root\bin;$env:PATH" }
+$gstRoot = Find-GStreamer
+if (-not $gstRoot) { throw "GStreamer (MSVC x86_64 with development files) not found; run this script with -Install" }
+$env:GSTREAMER_1_0_ROOT_MSVC_X86_64 = $gstRoot
+$env:PKG_CONFIG_PATH = "$gstRoot\lib\pkgconfig"
+if (-not ($env:PATH -split ";" | Where-Object { $_ -eq "$gstRoot\bin" })) { $env:PATH = "$gstRoot\bin;$env:PATH" }
 if ($env:GITHUB_ENV) {
-  "GSTREAMER_1_0_ROOT_MSVC_X86_64=$root" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
-  "PKG_CONFIG_PATH=$root\lib\pkgconfig" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
-  "$root\bin" | Out-File -FilePath $env:GITHUB_PATH -Append -Encoding utf8
+  "GSTREAMER_1_0_ROOT_MSVC_X86_64=$gstRoot" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+  "PKG_CONFIG_PATH=$gstRoot\lib\pkgconfig" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+  "$gstRoot\bin" | Out-File -FilePath $env:GITHUB_PATH -Append -Encoding utf8
 }
-Write-Host "GStreamer: $root"
+Write-Host "GStreamer: $gstRoot"

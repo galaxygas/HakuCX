@@ -283,7 +283,7 @@ export const SECTIONS: SectionDef[] = [
           toggle("sync", "passwords", "Passwords, cards and addresses", "Encrypted with your sync passphrase in the shared folder"),
         ],
       },
-      { title: "My Flow", rows: [toggle("features", "myFlow", "Enable My Flow")] },
+      { title: "My Flow", rows: [toggle("features", "myFlow", "Enable My Flow", "Send notes, links and files between HakuCX and your phone over your Wi-Fi, end-to-end encrypted. No account or server.")] },
     ],
   },
   {

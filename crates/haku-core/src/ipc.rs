@@ -598,11 +598,48 @@ pub enum Command {
         action: MediaAction,
     },
 
+    // ---- My Flow
+    /// Show a QR code that connects a phone.
+    FlowPair,
+    FlowCancelPairing,
+    /// A note or link from this computer.
+    FlowSend {
+        text: String,
+    },
+    /// Send a tab's address (the active tab when `None`).
+    FlowSendPage {
+        tab: Option<TabId>,
+    },
+    /// Pick a file and send it.
+    FlowSendFile,
+    /// Open a link or file from My Flow.
+    FlowOpen {
+        id: String,
+    },
+    /// Show a received file in its folder.
+    FlowShowFile {
+        id: String,
+    },
+    FlowRemove {
+        id: String,
+    },
+    FlowClear,
+    /// Disconnect a phone (it must scan a new QR code to connect again).
+    FlowForgetDevice {
+        device: String,
+    },
+    /// The My Flow panel is open: clear the unread count.
+    FlowSeen,
+
     // ---- GX Lights
     /// Try to reach Razer Chroma and OpenRGB again now.
     LightsReconnect,
 
     // ---- misc
+    /// Put text on the system clipboard (the UI's own clipboard API is off in Servo).
+    CopyText {
+        text: String,
+    },
     Panic,
     PlaySound {
         sound: String,
@@ -791,6 +828,30 @@ pub struct UpdateStatus {
     pub progress: f32,
     pub message: String,
     pub last_check: Option<i64>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize, TS)]
+#[serde(rename_all = "camelCase")]
+#[ts(export)]
+pub struct FlowStatus {
+    /// `off` (My Flow is turned off), `ready`, or `unavailable` (see `message`).
+    pub state: String,
+    pub message: String,
+    pub entries: Vec<crate::flow::FlowEntry>,
+    pub devices: Vec<crate::flow::FlowDevice>,
+    /// The address a phone opens (shown as a QR code) while pairing.
+    pub pairing: Option<FlowPairing>,
+    /// Where phones reach this computer (`192.168.1.5:47652`), while the server runs.
+    pub address: Option<String>,
+    pub unread: u32,
+}
+
+#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize, TS)]
+#[serde(rename_all = "camelCase")]
+#[ts(export)]
+pub struct FlowPairing {
+    pub url: String,
+    pub expires: i64,
 }
 
 /// One way GX Lights reaches devices (Razer Chroma or OpenRGB).
@@ -1278,6 +1339,9 @@ pub enum Event {
     },
     Lights {
         status: LightsStatus,
+    },
+    Flow {
+        status: FlowStatus,
     },
     Pinboards {
         pinboards: Pinboards,
